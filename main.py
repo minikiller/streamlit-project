@@ -9,7 +9,7 @@ from datetime import datetime
 def get_data() -> tuple[pd.DataFrame, list]:
     # 显示结果
     df = pd.read_csv(
-        "data/Hist_2023-03-20.csv", parse_dates=['日期'], index_col=0, dtype={"股票编号": object})
+        "data/Hist_2023-03-20.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     dates = df.index.unique().sort_values().to_list()
     # print(type(dates[0]))
     # dates = [x.strftime("%Y-%m-%d") for x in dates]
@@ -18,7 +18,7 @@ def get_data() -> tuple[pd.DataFrame, list]:
     value = pd.read_csv(
         "./data/总股本.csv", index_col=0, dtype={"代码": object})
     value_dict = value['总股本'].to_dict()
-    df['总股本'] = df['股票编号'].apply(lambda x: value_dict.get(x))
+    df['总股本'] = df['股票代码'].apply(lambda x: value_dict.get(x))
     df['总市值'] = df['总股本']*df['收盘']
 
     result = df.groupby(["日期", "板块名称"]).agg({"涨跌幅": "mean", "总市值": "sum"})
