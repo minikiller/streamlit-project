@@ -9,7 +9,7 @@ from datetime import datetime
 def get_data() -> tuple[pd.DataFrame, list]:
     # 显示结果
     df = pd.read_csv(
-        "data/hist_2023-03-14.csv", parse_dates=['日期'], index_col=0, dtype={"股票编号": object})
+        "data/Hist_2023-03-20.csv", parse_dates=['日期'], index_col=0, dtype={"股票编号": object})
     dates = df.index.unique().sort_values().to_list()
     # print(type(dates[0]))
     # dates = [x.strftime("%Y-%m-%d") for x in dates]
