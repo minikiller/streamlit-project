@@ -7,6 +7,9 @@ from datetime import datetime
 
 @st.cache_data
 def get_data() -> tuple[pd.DataFrame, list]:
+    """
+    获得股票历史信息，并计算总市值
+    """
     # 显示结果
     df = pd.read_csv(
         "data/Hist_2023-03-20.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
@@ -15,14 +18,12 @@ def get_data() -> tuple[pd.DataFrame, list]:
     # dates = [x.strftime("%Y-%m-%d") for x in dates]
     # 获得当前结果集的日期列表
     dates_list = [date.strftime('%Y-%m-%d') for date in dates]
-    value = pd.read_csv(
-        "./data/总股本.csv", index_col=0, dtype={"代码": object})
+    value = pd.read_csv("./data/总股本.csv", index_col=0, dtype={"代码": object})
     value_dict = value['总股本'].to_dict()
     df['总股本'] = df['股票代码'].apply(lambda x: value_dict.get(x))
     df['总市值'] = df['总股本']*df['收盘']
 
-    result = df.groupby(["日期", "板块名称"]).agg({"涨跌幅": "mean", "总市值": "sum"})
-    return (result, dates_list)
+    return (df, dates_list)
 
 
 def get_cur_date(day):
@@ -54,7 +55,7 @@ def main():
     # create a slider widget for the low value
     start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 10, 50, 10, 5)
     end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 51, 100, 100, 5)
-
+    # dates_list 用于过滤日期
     df, dates_list = get_data()
     #  = get_list(df)
     # x_axis = st.sidebar.selectbox('选择日期', dates_list)
@@ -84,18 +85,19 @@ def main():
             # create a checkbox widget
             # df['涨跌幅'] = df['收盘价'].pct_change()
             cur_df = df.loc[cur_date]
-
+            cur_df = cur_df[(cur_df['总市值'] >= int(start_value)*100_000_000)
+                            & (cur_df['总市值'] <= int(end_value)*100_000_000)]
             # cur_df
+            cur_df = cur_df.groupby(["日期", "板块名称"]).agg(
+                {"涨跌幅": "mean", "总市值": "sum"})
             cur_df.reset_index(inplace=True)
             _list = filter_value.split(",")
             cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
-            cur_df = cur_df[(cur_df['总市值'] >= int(start_value)*100_000_000)
-                            & (cur_df['总市值'] <= int(end_value)*100_000_000)]
 
             st.subheader(f"数据集显示：{cur_date}")
             st.dataframe(cur_df)
 
-            fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='总市值', height=1080*0.2, width=1920*0.2,
+            fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='总市值', height=1080, width=1920,
                              color='涨跌幅', color_continuous_scale='Geyser', range_color=[-0.05, 0.05], color_continuous_midpoint=0,
                              hover_data={"总市值": ':,.2f', '涨跌幅': ":.2%"})
             fig.update_traces(textinfo="label+value", textfont=dict(size=24))
