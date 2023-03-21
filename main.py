@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import datetime
 # import streamlit_aggrid as ag
 from st_aggrid import AgGrid
+from st_aggrid.grid_options_builder import GridOptionsBuilder
 
 
 @st.cache_data
@@ -130,8 +131,18 @@ def main():
             st.plotly_chart(fig, use_container_width=True)
 
             st.dataframe(zero_df)
+
             # st.title("Netlix shows analysis")
-            AgGrid(cur_df, grid_options={'enable_horizontal_scrollbar': True})
+            # add this
+            gb = GridOptionsBuilder.from_dataframe(cur_df)
+            gb.configure_pagination(paginationPageSize=25)
+            gb.configure_side_bar()
+
+            gb.configure_default_column(
+                groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
+
+            gridOptions = gb.build()
+            AgGrid(cur_df, gridOptions=gridOptions)
             # ag.grid(cur_df, height=300, width='100%',
             #         enableSorting=True, enableFilter=True)
             # ag.grid(data, enableSorting=True, enableFilter=True)
