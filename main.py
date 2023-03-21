@@ -3,6 +3,8 @@ import pandas as pd
 # 定义 Streamlit 应用程序
 import plotly.express as px
 from datetime import datetime
+# import streamlit_aggrid as ag
+from st_aggrid import AgGrid
 
 
 @st.cache_data
@@ -43,6 +45,7 @@ def main():
     filter_value = "包装印刷,中药"
     start_value = "10"
     end_value = "100"
+    st.set_page_config(page_title="板块的热力图", layout="wide")
 
     st.title("使用plotly计算板块的热力图")
 
@@ -111,22 +114,28 @@ def main():
             cur_df = cur_df[cur_df['涨幅比'] != 0]
             st.dataframe(cur_df)
 
-            # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
-            #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
-            #                  hover_data={"总市值": ':,.2f', '涨的数量': ":.d", "跌的数量": ":.d", })
-            # fig.update_traces(textinfo="label+value", textfont=dict(size=24))
+            fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
+                             color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
+                             hover_data={'涨的数量': ":.d", "跌的数量": ":.d", })
+            fig.update_traces(textinfo="label+value", textfont=dict(size=24))
 
-            # # Set the layout to center the figure
-            # fig.update_layout(
-            #     width=1080,
-            #     height=1920,
-            #     margin=dict(autoexpand=True),
-            # )
-            # # # Display the treemap diagram in Streamlit
+            # Set the layout to center the figure
+            fig.update_layout(
+                width=1080,
+                height=1920,
+                margin=dict(autoexpand=True),
+            )
+            # # Display the treemap diagram in Streamlit
             # st.plotly_chart(fig)
-            # st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
 
             st.dataframe(zero_df)
+            # st.title("Netlix shows analysis")
+            AgGrid(cur_df, grid_options={'enable_horizontal_scrollbar': True})
+            # ag.grid(cur_df, height=300, width='100%',
+            #         enableSorting=True, enableFilter=True)
+            # ag.grid(data, enableSorting=True, enableFilter=True)
+
         else:
             st.write(f"您选择的数据不存在{cur_date}")
 
