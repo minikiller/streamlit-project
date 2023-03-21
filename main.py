@@ -53,8 +53,8 @@ def main():
     filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
 
     # create a slider widget for the low value
-    start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 10, 50, 10, 5)
-    end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 51, 100, 100, 5)
+    start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 100, 10, 1)
+    end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 101, 30000, 101, 10)
     # dates_list 用于过滤日期
     df, dates_list = get_data()
     #  = get_list(df)
