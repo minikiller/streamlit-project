@@ -88,7 +88,7 @@ def main():
             # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
             result = cur_df.groupby(["日期", '板块名称'])['涨跌幅'].agg(
                 [('涨的数量', lambda x: sum(x > 0)), ('跌的数量', lambda x: sum(x < 0))])
-            result['涨幅比'] = result['涨的数量']/(result['涨的数量']+result['跌的数量'])
+            result['涨幅比'] = result['涨的数量']/(result['涨的数量']+result['跌的数量'])*100
 
             cur_df = cur_df[(cur_df['总市值'] >= int(start_value)*100_000_000)
                             & (cur_df['总市值'] <= int(end_value)*100_000_000)]
@@ -100,26 +100,27 @@ def main():
             zero_df = cur_df[cur_df['涨幅比'] == 0]
             cur_df = cur_df[cur_df['涨幅比'] != 0]
             st.subheader(f"数据集显示：{cur_date}")
-            # st.dataframe(cur_df)
             cur_df.reset_index(inplace=True)
             _list = filter_value.split(",")
             cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
+            cur_df = cur_df.sort_values(by='涨幅比', ascending=False)
+            st.dataframe(cur_df)
 
-            fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=1080, width=1920,
-                             color='涨幅比', color_continuous_scale='Geyser', range_color=[-0.05, 0.05], color_continuous_midpoint=0,
-                             hover_data={"总市值": ':,.2f', '涨幅比': ":.2%", '涨的数量': ":.d", "跌的数量": ":.d", })
-            fig.update_traces(textinfo="label+value", textfont=dict(size=24))
+            # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
+            #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
+            #                  hover_data={"总市值": ':,.2f', '涨的数量': ":.d", "跌的数量": ":.d", })
+            # fig.update_traces(textinfo="label+value", textfont=dict(size=24))
 
-            # Set the layout to center the figure
-            fig.update_layout(
-                width=1080,
-                height=1920,
-                margin=dict(autoexpand=True),
-            )
-            # # Display the treemap diagram in Streamlit
+            # # Set the layout to center the figure
+            # fig.update_layout(
+            #     width=1080,
+            #     height=1920,
+            #     margin=dict(autoexpand=True),
+            # )
+            # # # Display the treemap diagram in Streamlit
             # st.plotly_chart(fig)
-            st.plotly_chart(fig, use_container_width=True)
-           
+            # st.plotly_chart(fig, use_container_width=True)
+
             st.dataframe(zero_df)
         else:
             st.write(f"您选择的数据不存在{cur_date}")
