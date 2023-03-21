@@ -90,20 +90,26 @@ def main():
             # cur_df
             cur_df = cur_df.groupby(["日期", "板块名称"]).agg(
                 {"涨跌幅": "mean", "总市值": "sum"})
+            st.subheader(f"数据集显示：{cur_date}")
+            # st.dataframe(cur_df)
             cur_df.reset_index(inplace=True)
             _list = filter_value.split(",")
             cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
-
-            st.subheader(f"数据集显示：{cur_date}")
-            st.dataframe(cur_df)
 
             fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='总市值', height=1080, width=1920,
                              color='涨跌幅', color_continuous_scale='Geyser', range_color=[-0.05, 0.05], color_continuous_midpoint=0,
                              hover_data={"总市值": ':,.2f', '涨跌幅': ":.2%"})
             fig.update_traces(textinfo="label+value", textfont=dict(size=24))
 
+            # Set the layout to center the figure
+            fig.update_layout(
+                width=1080,
+                height=1920,
+                margin=dict(autoexpand=True),
+            )
             # # Display the treemap diagram in Streamlit
-            st.plotly_chart(fig)
+            # st.plotly_chart(fig)
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.write(f"您选择的数据不存在{cur_date}")
 
