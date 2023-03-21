@@ -100,15 +100,15 @@ def main():
             # 将Salary列格式化为亿元
             cur_df['总市值亿元'] = cur_df['总市值'].apply(
                 lambda x: '{:.2f}亿元'.format(x/100000000))
-            cur_df = cur_df.drop(columns="总市值")
-            zero_df = cur_df[cur_df['涨幅比'] == 0]
-            cur_df = cur_df[cur_df['涨幅比'] != 0]
+
             st.subheader(f"数据集显示：{cur_date}")
             cur_df.reset_index(inplace=True)
             _list = filter_value.split(",")
             cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
-            cur_df = cur_df.sort_values(by='涨幅比', ascending=False)
-
+            cur_df = cur_df.sort_values(by=['涨幅比', "总市值"], ascending=False)
+            cur_df = cur_df.drop(columns="总市值")
+            zero_df = cur_df[cur_df['涨幅比'] == 0]
+            cur_df = cur_df[cur_df['涨幅比'] != 0]
             st.dataframe(cur_df)
 
             # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
