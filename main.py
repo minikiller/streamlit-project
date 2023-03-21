@@ -53,7 +53,7 @@ def main():
     filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
 
     # create a slider widget for the low value
-    start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 100, 10, 1)
+    start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 500, 10, 1)
     end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 101, 30000, 101, 10)
     # dates_list 用于过滤日期
     df, dates_list = get_data()
@@ -97,6 +97,10 @@ def main():
                 {"涨跌幅": "mean", "总市值": "sum"})
             cur_df = result.join(cur_df, on=["日期", "板块名称"])
             cur_df.dropna(inplace=True, axis=0)
+            # 将Salary列格式化为亿元
+            cur_df['总市值亿元'] = cur_df['总市值'].apply(
+                lambda x: '{:.2f}亿元'.format(x/100000000))
+            cur_df = cur_df.drop(columns="总市值")
             zero_df = cur_df[cur_df['涨幅比'] == 0]
             cur_df = cur_df[cur_df['涨幅比'] != 0]
             st.subheader(f"数据集显示：{cur_date}")
@@ -104,6 +108,7 @@ def main():
             _list = filter_value.split(",")
             cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
             cur_df = cur_df.sort_values(by='涨幅比', ascending=False)
+
             st.dataframe(cur_df)
 
             # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
