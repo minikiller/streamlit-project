@@ -6,6 +6,17 @@ from datetime import datetime
 # import streamlit_aggrid as ag
 from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
+import plotly.graph_objs as go
+
+
+options = ["0-100", "100-500", "500-1000", "1000-30000"]
+option_dict = {
+    "0-100": (0, 100),
+    "100-500": (100, 500),
+    "500-1000": (500, 1000),
+    "1000-30000": (1000, 30000),
+
+}
 
 
 @st.cache_data
@@ -27,6 +38,24 @@ def get_data() -> tuple[pd.DataFrame, list]:
     df['总市值'] = df['总股本']*df['收盘']
 
     return (df, dates_list)
+
+
+def create_bar(df):
+
+    # bins = list(range(-11, 12))
+    bins = [-11, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 11]
+
+    cuts = pd.cut(df['涨跌幅'], bins=bins)
+    pct_chg_list = df.groupby(cuts)['涨跌幅'].count().tolist()
+    x = ["跌停", "跌<-5%",  ">-5%",     "-1-3%",    "平盘",
+         "<3%",     "3-5%",   "5%-涨停", "涨停"]
+
+    y = pct_chg_list
+    color = ["green", "green", "green", "green",
+             "yellow", "red", "red", "red", "red"]
+
+    data = pd.DataFrame({"x": x, "y": y, "color": color})
+    return data
 
 
 def get_cur_date(day):
@@ -57,8 +86,12 @@ def main():
     filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
 
     # create a slider widget for the low value
-    start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 500, 10, 1)
-    end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 101, 30000, 101, 10)
+    # start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 500, 10, 1)
+    # end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 101, 30000, 101, 10)
+
+    # create a radio button widget and store the user's choice in a variable
+    selected_option = st.sidebar.radio("请选择过滤的数值(亿元)", options)
+    start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
     df, dates_list = get_data()
     #  = get_list(df)
@@ -89,6 +122,17 @@ def main():
             # create a checkbox widget
             # df['涨跌幅'] = df['收盘价'].pct_change()
             cur_df = df.loc[cur_date]
+
+            # 创建bar
+            bar_df = create_bar(cur_df)
+
+            # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
+            fig = go.Figure([go.Bar(x=bar_df['x'], y=bar_df['y'], marker={
+                            'color': bar_df["color"]}, text=bar_df['y'], textposition='auto')])
+            fig.update_traces(
+                texttemplate='%{text:.2d}', textposition='outside')
+            st.plotly_chart(fig, use_container_width=True)
+
             # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
             result = cur_df.groupby(["日期", '板块名称'])['涨跌幅'].agg(
                 [('涨的数量', lambda x: sum(x > 0)), ('跌的数量', lambda x: sum(x < 0))])
@@ -113,36 +157,45 @@ def main():
             cur_df = cur_df.drop(columns="总市值")
             zero_df = cur_df[cur_df['涨幅比'] == 0]
             cur_df = cur_df[cur_df['涨幅比'] != 0]
-            st.dataframe(cur_df)
+            st.dataframe(cur_df, use_container_width=True)
 
-            fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
-                             color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
-                             hover_data={'涨的数量': ":.d", "跌的数量": ":.d", })
-            fig.update_traces(textinfo="label+value", textfont=dict(size=24))
+            # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
+            #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
+            #                  hover_data={'涨的数量': ":.d", "跌的数量": ":.d", })
+            # fig.update_traces(textinfo="label+value", textfont=dict(size=24))
 
-            # Set the layout to center the figure
-            fig.update_layout(
-                width=1080,
-                height=1920,
-                margin=dict(autoexpand=True),
-            )
+            # # Set the layout to center the figure
+            # fig.update_layout(
+            #     width=1080,
+            #     height=1920,
+            #     margin=dict(autoexpand=True),
+            # )
             # # Display the treemap diagram in Streamlit
             # st.plotly_chart(fig)
             st.plotly_chart(fig, use_container_width=True)
 
-            st.dataframe(zero_df)
+            st.dataframe(zero_df, use_container_width=True)
 
             # st.title("Netlix shows analysis")
             # add this
             gb = GridOptionsBuilder.from_dataframe(cur_df)
-            gb.configure_pagination(paginationPageSize=25)
+            gb.configure_pagination(
+                paginationPageSize=25, paginationAutoPageSize=True)
             gb.configure_side_bar()
 
             gb.configure_default_column(
                 groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
             gridOptions = gb.build()
-            AgGrid(cur_df, gridOptions=gridOptions)
+            AgGrid(cur_df, gridOptions=gridOptions, theme='material')
+            #    data_return_mode='AS_INPUT',
+            #    update_mode='MODEL_CHANGED',
+            #    fit_columns_on_grid_load=False,
+            #    theme='material',  # Add theme color to the table
+            #    enable_enterprise_modules=True,
+            #    height=350,
+            #    width='100%',
+            #    reload_data=True)
             # ag.grid(cur_df, height=300, width='100%',
             #         enableSorting=True, enableFilter=True)
             # ag.grid(data, enableSorting=True, enableFilter=True)
