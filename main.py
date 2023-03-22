@@ -43,7 +43,7 @@ def get_data() -> tuple[pd.DataFrame, list]:
 def create_bar(df):
 
     # bins = list(range(-11, 12))
-    bins = [-11, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 11]
+    bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
 
     cuts = pd.cut(df['涨跌幅'], bins=bins)
     pct_chg_list = df.groupby(cuts)['涨跌幅'].count().tolist()
@@ -131,6 +131,8 @@ def main():
                             'color': bar_df["color"]}, text=bar_df['y'], textposition='auto')])
             fig.update_traces(
                 texttemplate='%{text:.2d}', textposition='outside')
+            fig.update_layout(autosize=True, margin=dict(
+                l=20, r=20, t=20, b=20),)
             st.plotly_chart(fig, use_container_width=True)
 
             # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
@@ -172,7 +174,7 @@ def main():
             # )
             # # Display the treemap diagram in Streamlit
             # st.plotly_chart(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            # st.plotly_chart(fig, use_container_width=True)
 
             st.dataframe(zero_df, use_container_width=True)
 
