@@ -165,7 +165,8 @@ def main():
         st.subheader(f"数据集显示：{cur_date}")
         cur_df.reset_index(inplace=True)
         _list = filter_value.split(",")
-        cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
+        cur_df = cur_df[cur_df['板块名称'].isin(_list)]
+        # cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
         cur_df = cur_df.sort_values(by=['涨幅比', "总市值"], ascending=False)
         cur_df = cur_df.drop(columns="总市值")
         zero_df = cur_df[cur_df['涨幅比'] == 0]
