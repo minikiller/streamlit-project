@@ -9,13 +9,13 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 import plotly.graph_objs as go
 
 
-options = ["0-100", "100-500", "500-1000", "1000-30000"]
+options = ["0-100", "100-500", "500-1000", "1000-30000", "全部", ]
 option_dict = {
+    "全部": (float('-inf'), float('inf')),
     "0-100": (0, 100),
     "100-500": (100, 500),
     "500-1000": (500, 1000),
     "1000-30000": (1000, 30000),
-
 }
 
 
@@ -58,16 +58,26 @@ def create_bar(df):
     return data
 
 
+def get_grouped(db):
+    # bins = list(range(-11, 12))
+
+    bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
+
+    cuts = pd.cut(db['涨跌幅'], bins=bins)
+    pct_chg_list = db.groupby(["板块名称", cuts])['涨跌幅'].count()
+    df = pd.DataFrame(pct_chg_list)
+    # db.reset_index(inplace=True,level=[0, 1])
+    df = df.unstack()
+    result = pd.merge(db, df, on='板块名称')
+    return result
+
+
 def get_cur_date(day):
     date = datetime.now()
     year = date.year
     month = date.month
     my_date = datetime(year, month, day)
     return my_date.strftime("%Y-%m-%d")
-
-
-def filter_df(df, cur_date, end_value, filter_value):
-    pass
 
 
 def main():
@@ -94,6 +104,7 @@ def main():
     start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
     df, dates_list = get_data()
+
     #  = get_list(df)
     # x_axis = st.sidebar.selectbox('选择日期', dates_list)
     # d = st.sidebar.date_input(
@@ -114,96 +125,99 @@ def main():
     #         st.write("x"*10, d)
     #     else:
     #         st.write("y"*10, d)
-    if cur_day:
-        cur_date = get_cur_date(cur_day)
-        # st.write("You selected cur date is", cur_date)
-        # create a date input widget
-        if cur_date in dates_list:
-            # create a checkbox widget
-            # df['涨跌幅'] = df['收盘价'].pct_change()
-            cur_df = df.loc[cur_date]
+    cur_date = get_cur_date(cur_day)
+    # st.write("You selected cur date is", cur_date)
+    # create a date input widget
+    if cur_date in dates_list:
+        # create a checkbox widget
+        # df['涨跌幅'] = df['收盘价'].pct_change()
+        cur_df = df.loc[cur_date]
 
-            # 创建bar
-            bar_df = create_bar(cur_df)
+        # 创建bar
+        bar_df = create_bar(cur_df)
 
-            # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
-            fig = go.Figure([go.Bar(x=bar_df['x'], y=bar_df['y'], marker={
-                            'color': bar_df["color"]}, text=bar_df['y'], textposition='auto')])
-            fig.update_traces(
-                texttemplate='%{text:.2d}', textposition='outside')
-            fig.update_layout(autosize=True, margin=dict(
-                l=20, r=20, t=20, b=20),)
-            st.plotly_chart(fig, use_container_width=True)
+        # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
+        fig = go.Figure([go.Bar(x=bar_df['x'], y=bar_df['y'], marker={
+                        'color': bar_df["color"]}, text=bar_df['y'], textposition='auto')])
+        fig.update_traces(
+            texttemplate='%{text:.2d}', textposition='outside')
+        fig.update_layout(autosize=True, margin=dict(
+            l=20, r=20, t=20, b=20),)
+        st.plotly_chart(fig, use_container_width=True)
 
-            # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
-            result = cur_df.groupby(["日期", '板块名称'])['涨跌幅'].agg(
-                [('涨的数量', lambda x: sum(x > 0)), ('跌的数量', lambda x: sum(x < 0))])
-            result['涨幅比'] = result['涨的数量']/(result['涨的数量']+result['跌的数量'])*100
+        # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
+        result = cur_df.groupby(['板块名称'])['涨跌幅'].agg(
+            [('涨的数量', lambda x: sum(x > 0)), ('跌的数量', lambda x: sum(x < 0))])
+        result['涨幅比'] = result['涨的数量']/(result['涨的数量']+result['跌的数量'])*100
 
-            cur_df = cur_df[(cur_df['总市值'] >= int(start_value)*100_000_000)
-                            & (cur_df['总市值'] <= int(end_value)*100_000_000)]
-            # cur_df
-            cur_df = cur_df.groupby(["日期", "板块名称"]).agg(
-                {"涨跌幅": "mean", "总市值": "sum"})
-            cur_df = result.join(cur_df, on=["日期", "板块名称"])
-            cur_df.dropna(inplace=True, axis=0)
-            # 将Salary列格式化为亿元
-            cur_df['总市值亿元'] = cur_df['总市值'].apply(
-                lambda x: '{:.2f}亿元'.format(x/100000000))
+        cur_df = cur_df[(cur_df['总市值'] >= (start_value)*100_000_000)
+                        & (cur_df['总市值'] <= (end_value)*100_000_000)]
+        # cur_df
+        cur_df = cur_df.groupby(["板块名称"]).agg(
+            {"涨跌幅": "mean", "总市值": "sum"})
+        cur_df = result.join(cur_df, on=["板块名称"])
+        cur_df.dropna(inplace=True, axis=0)
+        # 将Salary列格式化为亿元
+        cur_df['总市值亿元'] = cur_df['总市值'].apply(
+            lambda x: '{:.2f}'.format(x/100000000))
+        
 
-            st.subheader(f"数据集显示：{cur_date}")
-            cur_df.reset_index(inplace=True)
-            _list = filter_value.split(",")
-            cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
-            cur_df = cur_df.sort_values(by=['涨幅比', "总市值"], ascending=False)
-            cur_df = cur_df.drop(columns="总市值")
-            zero_df = cur_df[cur_df['涨幅比'] == 0]
-            cur_df = cur_df[cur_df['涨幅比'] != 0]
-            st.dataframe(cur_df, use_container_width=True)
+        st.subheader(f"数据集显示：{cur_date}")
+        cur_df.reset_index(inplace=True)
+        _list = filter_value.split(",")
+        cur_df = cur_df[~cur_df['板块名称'].isin(_list)]
+        cur_df = cur_df.sort_values(by=['涨幅比', "总市值"], ascending=False)
+        cur_df = cur_df.drop(columns="总市值")
+        zero_df = cur_df[cur_df['涨幅比'] == 0]
+        cur_df = cur_df[cur_df['涨幅比'] != 0]
+        st.dataframe(cur_df, use_container_width=True)
 
-            # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
-            #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
-            #                  hover_data={'涨的数量': ":.d", "跌的数量": ":.d", })
-            # fig.update_traces(textinfo="label+value", textfont=dict(size=24))
+        # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
+        #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
+        #                  hover_data={'涨的数量': ":.d", "跌的数量": ":.d", })
+        # fig.update_traces(textinfo="label+value", textfont=dict(size=24))
 
-            # # Set the layout to center the figure
-            # fig.update_layout(
-            #     width=1080,
-            #     height=1920,
-            #     margin=dict(autoexpand=True),
-            # )
-            # # Display the treemap diagram in Streamlit
-            # st.plotly_chart(fig)
-            # st.plotly_chart(fig, use_container_width=True)
+        # # Set the layout to center the figure
+        # fig.update_layout(
+        #     width=1080,
+        #     height=1920,
+        #     margin=dict(autoexpand=True),
+        # )
+        # # Display the treemap diagram in Streamlit
+        # st.plotly_chart(fig)
+        # st.plotly_chart(fig, use_container_width=True)
+        st.subheader(f"显示为0的数据:")
+        st.dataframe(zero_df, use_container_width=True)
 
-            st.dataframe(zero_df, use_container_width=True)
+        # st.title("Netlix shows analysis")
+        # add this
+        st.subheader(f"AgGrid 显示的数据:")
+        gb = GridOptionsBuilder.from_dataframe(cur_df)
+        gb.configure_pagination(
+            paginationPageSize=25, paginationAutoPageSize=True)
+        gb.configure_side_bar()
 
-            # st.title("Netlix shows analysis")
-            # add this
-            gb = GridOptionsBuilder.from_dataframe(cur_df)
-            gb.configure_pagination(
-                paginationPageSize=25, paginationAutoPageSize=True)
-            gb.configure_side_bar()
+        gb.configure_default_column(
+            groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
-            gb.configure_default_column(
-                groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
+        gridOptions = gb.build()
+        AgGrid(cur_df, gridOptions=gridOptions, theme='material')
+        #    data_return_mode='AS_INPUT',
+        #    update_mode='MODEL_CHANGED',
+        #    fit_columns_on_grid_load=False,
+        #    theme='material',  # Add theme color to the table
+        #    enable_enterprise_modules=True,
+        #    height=350,
+        #    width='100%',
+        #    reload_data=True)
+        # ag.grid(cur_df, height=300, width='100%',
+        #         enableSorting=True, enableFilter=True)
+        # ag.grid(data, enableSorting=True, enableFilter=True)
+        cur_df = get_grouped(cur_df)
+        st.dataframe(cur_df, use_container_width=True)
 
-            gridOptions = gb.build()
-            AgGrid(cur_df, gridOptions=gridOptions, theme='material')
-            #    data_return_mode='AS_INPUT',
-            #    update_mode='MODEL_CHANGED',
-            #    fit_columns_on_grid_load=False,
-            #    theme='material',  # Add theme color to the table
-            #    enable_enterprise_modules=True,
-            #    height=350,
-            #    width='100%',
-            #    reload_data=True)
-            # ag.grid(cur_df, height=300, width='100%',
-            #         enableSorting=True, enableFilter=True)
-            # ag.grid(data, enableSorting=True, enableFilter=True)
-
-        else:
-            st.write(f"您选择的数据不存在{cur_date}")
+    else:
+        st.write(f"您选择的数据不存在{cur_date}")
 
 
 # 运行 Streamlit 应用程序
