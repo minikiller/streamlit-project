@@ -4,9 +4,9 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 # import streamlit_aggrid as ag
-from st_aggrid import AgGrid
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 import plotly.graph_objs as go
+from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
 
 
 options = ["0-100", "100-500", "500-1000", "1000-30000", "全部", ]
@@ -40,6 +40,34 @@ def get_code_data():
     return df
 
 
+def aggrid_interactive_table(df: pd.DataFrame):
+    """
+    Creates an st-aggrid interactive table based on a dataframe.
+
+    Args:
+        df(pd.DataFrame]): Source dataframe
+
+    Returns:
+        dict: The selected row
+    """
+    options = GridOptionsBuilder.from_dataframe(
+        df, enableRowGroup=True, enableValue=True, enablePivot=True)
+    # editable = True was removed - need this to be non- editable
+    options.configure_side_bar()
+
+    options.configure_selection("single")
+    selection = AgGrid(
+        df,
+        enable_enterprise_modules=True,
+        gridOptions=options.build(),
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        allow_unsafe_jscode=True,
+        height=400
+    )
+
+    return selection
+
+
 @st.cache_data
 def get_orginal_data() -> tuple[pd.DataFrame, list]:
     """
@@ -71,6 +99,22 @@ def create_bar(df):
              "yellow", "red", "red", "red", "red"]
 
     data = pd.DataFrame({"x": x, "y": y, "color": color})
+    return data
+
+
+def create_detail_bar(code, my_df):
+    my_df = my_df[my_df['板块名称'] == code]
+
+    x = ["跌停", "跌<-5%",  "-5<-3%",     "-1<3%",    "平盘",
+         "1<3%",     "3-5%",   "5%-涨停", "涨停"]
+    color = ["green", "green", "green", "green",
+             "yellow", "red", "red", "red", "red"]
+
+    my = my_df[x].unstack()
+    my = my.reset_index()
+    my.columns = ['x', "date", "y"]
+    # my
+    data = pd.DataFrame({"x": my["x"], "y": my["y"], "color": color})
     return data
 
 
@@ -162,7 +206,7 @@ def main():
         cur_df = cur_df.drop(columns="总市值")
         zero_df = cur_df[cur_df['涨幅比'] == 0]
         cur_df = cur_df[cur_df['涨幅比'] != 0]
-        st.dataframe(cur_df, use_container_width=True)
+        # st.dataframe(cur_df, use_container_width=True)
 
         # fig = px.treemap(cur_df, path=[px.Constant('All'), '板块名称'], values='涨幅比', height=800, width=600,
         #                  color='涨幅比', color_continuous_scale='Geyser',  color_continuous_midpoint=0,
@@ -178,22 +222,39 @@ def main():
         # # Display the treemap diagram in Streamlit
         # st.plotly_chart(fig)
         # st.plotly_chart(fig, use_container_width=True)
-        st.subheader(f"显示为0的数据:")
+        st.subheader(f"显示涨的数量为0的数据:")
         st.dataframe(zero_df, use_container_width=True)
 
         # st.title("Netlix shows analysis")
         # add this
         st.subheader(f"AgGrid 显示的数据:")
         gb = GridOptionsBuilder.from_dataframe(cur_df)
-        gb.configure_pagination(
-            paginationPageSize=25, paginationAutoPageSize=True)
+        gb.configure_pagination(paginationPageSize=25,
+                                paginationAutoPageSize=True)
         gb.configure_side_bar()
 
         gb.configure_default_column(
             groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
         gridOptions = gb.build()
-        AgGrid(cur_df, gridOptions=gridOptions, theme='material')
+        result = aggrid_interactive_table(cur_df)
+
+
+# if not result:
+        select = result["selected_rows"]
+        if len(select) > 0:
+            # st.write(select)
+            st.write(select[0]['板块名称'])
+            code_df = create_detail_bar(select[0]['板块名称'], cur_df)
+            # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
+            fig = go.Figure([go.Bar(x=code_df['x'], y=code_df['y'], marker={
+                            'color': code_df["color"]}, text=code_df['y'], textposition='auto')])
+            fig.update_traces(
+                texttemplate='%{text:.2d}', textposition='outside')
+            fig.update_layout(autosize=True, margin=dict(
+                l=20, r=20, t=20, b=20),)
+            st.plotly_chart(fig, use_container_width=True)
+        # AgGrid(cur_df, gridOptions=gridOptions, theme='material')
         #    data_return_mode='AS_INPUT',
         #    update_mode='MODEL_CHANGED',
         #    fit_columns_on_grid_load=False,
@@ -206,7 +267,7 @@ def main():
         #         enableSorting=True, enableFilter=True)
         # ag.grid(data, enableSorting=True, enableFilter=True)
         # cur_df = get_grouped(cur_df)
-        st.dataframe(cur_df, use_container_width=True)
+        # st.dataframe(cur_df, use_container_width=True)
 
     else:
         st.write(f"您选择的数据不存在{cur_date}")

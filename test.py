@@ -1,19 +1,53 @@
+import pandas as pd
 import streamlit as st
+import numpy as np
+import pandas as pd
 
-# Create a text input for the date
-date = st.slider("请输入日期（格式为YYYYMMDD）：")
+from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
 
-# Convert the input date to an integer
-date = int(date)
 
-# Define the range of dates
-start_date = 20220101
-end_date = 20221231
+def aggrid_interactive_table(df: pd.DataFrame):
+    """
+    Creates an st-aggrid interactive table based on a dataframe.
 
-list=[1,2,3,4]
+    Args:
+        df(pd.DataFrame]): Source dataframe
 
-# Check if the input date is within the range of dates
-if date in list:
-    st.write("Yes, the date is within the range!")
-else:
-    st.write("No, the date is not within the range.")
+    Returns:
+        dict: The selected row
+    """
+    options = GridOptionsBuilder.from_dataframe(
+        df, enableRowGroup=True, enableValue=True, enablePivot=True)
+    # editable = True was removed - need this to be non- editable
+    options.configure_side_bar()
+
+    options.configure_selection("single")
+    selection = AgGrid(
+        df,
+        enable_enterprise_modules=True,
+        gridOptions=options.build(),
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        allow_unsafe_jscode=True,
+        height=400
+    )
+
+    return selection
+
+
+@st.cache_data
+def get_code_data():
+    df = pd.read_csv(
+        "data/板块名称_股票对应.csv", index_col=0, dtype={"代码": object})
+    return df
+
+
+df = get_code_data()
+result = aggrid_interactive_table(df)
+# if not result:
+select =result["selected_rows"]
+if len(select)>0:
+    st.write(select)
+    st.write(select[0]['板块名称'])
+    # "板块名称"
+# st.write(result.get_selected_df())
+# st.warning(type(result))
