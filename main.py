@@ -245,7 +245,8 @@ def main():
         if len(select) > 0:
             # st.write(select)
             st.write(select[0]['板块名称'])
-            code_df = create_detail_bar(select[0]['板块名称'], cur_df)
+            code = select[0]['板块名称']
+            code_df = create_detail_bar(code, cur_df)
             # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
             fig = go.Figure([go.Bar(x=code_df['x'], y=code_df['y'], marker={
                             'color': code_df["color"]}, text=code_df['y'], textposition='auto')])
@@ -253,6 +254,40 @@ def main():
                 texttemplate='%{text:.2d}', textposition='outside')
             fig.update_layout(autosize=True, margin=dict(
                 l=20, r=20, t=20, b=20),)
+            st.plotly_chart(fig, use_container_width=True)
+
+            fig = go.Figure()
+            data_df = df.copy()
+            data_df = data_df[data_df['板块名称'] == code]
+            data_df.reset_index(inplace=True)
+            data_df['date'] = data_df['日期'].apply(
+                lambda x: x.strftime("%Y/%m/%d"))
+            fig.add_trace(go.Scatter(
+                x=data_df['date'], y=data_df['涨的数量'], mode='lines', line=dict(color='red')))
+            # fig.add_trace(go.Scatter(
+            #     x=data_df.index, y=data_df['跌的数量'], mode='lines'))
+
+            # add two horizontal lines at y=0 and y=1
+            # fig.add_shape(type='line', x0=min(data_df.index), y0=min(data_df['涨的数量']), x1=max(data_df.index), y1=min(data_df['涨的数量']),
+            #               line=dict(color='red', width=2))
+            # fig.add_shape(type='line', x0=0, y0=1, x1=9, y1=1,
+            #               line=dict(color='green', width=2))
+            # set the title and axis labels
+            fig.update_layout(title=f'{code}涨的数量折线图',
+                              xaxis_title='日期', yaxis_title='涨的数量')
+            fig.update_layout(xaxis_tickformat='%Y-%m-%d')
+
+            # set the maximum value of the y-axis to 2
+            fig.update_yaxes(range=[None, 20])
+
+            # mark the intervals on the y-axis
+            # fig.update_layout(yaxis=dict())
+
+            # customize the y-axis tick marks
+            fig.update_layout(yaxis=dict(
+                tickvals=[-20, 0, 20], ticktext=['Low', 'Medium', 'High'], tickmode='linear', dtick=5))
+
+            # display the plot
             st.plotly_chart(fig, use_container_width=True)
         # AgGrid(cur_df, gridOptions=gridOptions, theme='material')
         #    data_return_mode='AS_INPUT',
