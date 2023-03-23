@@ -19,6 +19,16 @@ option_dict = {
 }
 
 
+def get_cur_date(day):
+    date = datetime.now()
+    year = date.year
+    month = date.month
+    my_date = datetime(year, month, day)
+    return my_date.strftime("%Y-%m-%d")
+
+# Define callback to retrieve data from clicked point
+
+
 @st.cache_data
 def get_data() -> tuple[pd.DataFrame, list]:
     """
@@ -26,7 +36,7 @@ def get_data() -> tuple[pd.DataFrame, list]:
     """
     # 显示结果
     df = pd.read_csv(
-        "data/result_20230323.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/result_{datetime.now().strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     dates = df.index.unique().sort_values().to_list()
     # 获得当前结果集的日期列表
     dates_list = [date.strftime('%Y-%m-%d') for date in dates]
@@ -73,10 +83,10 @@ def aggrid_interactive_table(df: pd.DataFrame):
 @st.cache_data
 def get_orginal_data() -> tuple[pd.DataFrame, list]:
     """
-    获得股票原始历史信息，并计算总市值
+    获得股票原始历史信息 
     """
     df = pd.read_csv(
-        "data/Hist_2023-03-23.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/Hist_{datetime.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     # dates = df.index.unique().sort_values().to_list()
     return df
 
@@ -118,16 +128,6 @@ def create_detail_bar(code, my_df):
     # my
     data = pd.DataFrame({"x": my["x"], "y": my["y"], "color": color})
     return data
-
-
-def get_cur_date(day):
-    date = datetime.now()
-    year = date.year
-    month = date.month
-    my_date = datetime(year, month, day)
-    return my_date.strftime("%Y-%m-%d")
-
-# Define callback to retrieve data from clicked point
 
 
 def display_click_data(trace, points, state):
@@ -293,7 +293,7 @@ def main():
         # set the title and axis labels
         fig.update_layout(
             xaxis_title='日期', yaxis_title='涨的数量', xaxis_tickangle=-45)
-        
+
         # fig.update_layout(xaxis_tickformat='%Y-%m-%d')
 
         # set the maximum value of the y-axis to 2
