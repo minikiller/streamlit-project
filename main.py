@@ -34,6 +34,13 @@ def get_data() -> tuple[pd.DataFrame, list]:
 
 
 @st.cache_data
+def get_code_data():
+    df = pd.read_csv(
+        "data/板块名称_股票对应.csv", index_col=0, dtype={"代码": object})
+    return df
+
+
+@st.cache_data
 def get_orginal_data() -> tuple[pd.DataFrame, list]:
     """
     获得股票原始历史信息，并计算总市值
@@ -84,9 +91,18 @@ def main():
 
     st.title("使用plotly计算板块的热力图")
 
+    code_df = get_code_data()
+
     # 添加一些文本
     # st.write("使用plotly计算板块的热力图")
-
+    code_value = st.sidebar.text_input("请输入股票名字：",)
+    if code_value.strip() != "":
+        code_result = code_df[code_df['代码'] == code_value]
+        if not code_result.empty:
+            for index, row in code_result.iterrows():
+                st.sidebar.success(f"股票名称：{row['名称']},板块名称：{row['板块名称']}")
+        else:
+            st.sidebar.warning(f"股票代码：{code_value}没找到对应的板块名称！")
     # 添加一个交互式小部件
     filter_value = st.sidebar.text_input("请输入过滤的板块名字：",)
     # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
