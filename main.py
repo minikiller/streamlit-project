@@ -8,6 +8,9 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 import plotly.graph_objs as go
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
 from streamlit_plotly_events import plotly_events
+import pytz
+
+tz = pytz.timezone('Asia/Shanghai')
 
 options = ["0-100", "100-500", "500-1000", "1000-30000", "all", ]
 # option_dict = {
@@ -22,7 +25,7 @@ RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
 
 
 def get_cur_date(day):
-    date = datetime.now()
+    date = datetime.now(tz)
     year = date.year
     month = date.month
     my_date = datetime(year, month, day)
@@ -38,7 +41,7 @@ def get_data(range) -> tuple[pd.DataFrame, list]:
     """
     # 显示结果
     df = pd.read_csv(
-        f"data/result_{range}_{datetime.now().strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/result_{range}_{datetime.now(tz).strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     dates = df.index.unique().sort_values().to_list()
     # 获得当前结果集的日期列表
     dates_list = [date.strftime('%Y-%m-%d') for date in dates]
@@ -91,7 +94,7 @@ def get_orginal_data() -> tuple[pd.DataFrame, list]:
     获得股票原始历史信息 
     """
     df = pd.read_csv(
-        f"data/Hist_{datetime.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/Hist_{datetime.now(tz).strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     # dates = df.index.unique().sort_values().to_list()
     return df
 
@@ -143,14 +146,13 @@ def display_click_data(trace, points, state):
 
 
 def main():
-    import pytz
     st.set_page_config(page_title="板块的热力图", layout="wide")
     # 获取当前时区的时间
-    tz = pytz.timezone('Asia/Shanghai')
-    current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    # current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
     # 显示当前时间
-    st.write("当前时间是：", current_time)
+    # st.write("当前时间是：", current_time)
 
     filter_value = "包装印刷,中药"
     start_value = "10"
