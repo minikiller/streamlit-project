@@ -1,34 +1,20 @@
 import streamlit as st
-# if 'count' not in st.session_state:
-#     st.session_state.count = 2
-# cur_day = st.sidebar.slider("请选择您想查看的天", 1, 31, st.session_state.count)
-cur_day = st.sidebar.slider("请选择您想查看的天", 1, 31, 23, key="count")
-if st.button('Say hello'):
-    # cur_day += 1
-    # st.session_state.count += 1
-    st.session_state.slider_value += 1
-    st.write(cur_day)
-else:
-    st.write('Goodbye')
+import plotly.express as px
 
+# 创建两个示例数据集
+df1 = px.data.gapminder().query("continent=='Asia'")
+df2 = px.data.gapminder().query("continent=='Europe'")
 
-# Define a function to update the slider value based on the stored value
+# 使用beta_columns创建两个列
+col1, col2 = st.beta_columns(2)
 
-def update_slider():
-    # Get the stored value from the SessionState object
-    stored_value = st.session_state.slider_value
+# 在每个列中分别放置一个plotly图形
+with col1:
+    fig1 = px.scatter(df1, x="gdpPercap", y="lifeExp",
+                      color="country", log_x=True, size_max=60)
+    st.plotly_chart(fig1, use_container_width=True)
 
-    # Update the slider widget's value
-    slider_value = st.slider('Select a value:', 0, 100,
-                             value=stored_value, key='slider')
-
-    # Store the updated slider value back in the SessionState object
-    st.session_state.slider_value = slider_value
-
-
-# Initialize the SessionState object with a default slider value of 50
-if 'slider_value' not in st.session_state:
-    st.session_state.slider_value = 50
-
-# Call the update_slider function to display the slider widget and update its value
-update_slider()
+with col2:
+    fig2 = px.scatter(df2, x="gdpPercap", y="lifeExp",
+                      color="country", log_x=True, size_max=60)
+    st.plotly_chart(fig2, use_container_width=True)

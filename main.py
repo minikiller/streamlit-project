@@ -46,8 +46,8 @@ def get_data() -> tuple[pd.DataFrame, list]:
 @st.cache_data
 def get_code_data():
     df = pd.read_csv(
-        "data/板块名称_股票对应.csv", index_col=0, dtype={"代码": object})
-    data = df.groupby("板块名称")["代码"].count()
+        "data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
+    data = df.groupby("板块名称")["股票代码"].count()
     data_dict = data.to_dict()
     return df, data_dict
 
@@ -116,6 +116,9 @@ def create_bar(df):
 
 def create_detail_bar(code, my_df):
     my_df = my_df[my_df['板块名称'] == code]
+    if my_df.empty:
+        st.warning("没有获得数据")
+        return None
 
     x = ["跌停", "跌<-5%",  "-5<-3%",     "-1<3%",    "平盘",
          "1<3%",     "3-5%",   "5%-涨停", "涨停"]
@@ -153,17 +156,24 @@ def main():
     # 添加一些文本
     # st.write("使用plotly计算板块的热力图")
     code_value = st.sidebar.text_input("请输入股票名字：",)
+    if not "filter" in st.session_state:
+        st.session_state.filter = ""
+
+    # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
     if code_value.strip() != "":
-        code_result = code_df[code_df['代码'] == code_value]
+        code_result = code_df[code_df['股票代码'] == code_value]
         if not code_result.empty:
+            mylist = []
             for index, row in code_result.iterrows():
-                st.sidebar.success(f"股票名称：{row['名称']},板块名称：{row['板块名称']}")
+                mylist.append(row['板块名称'])
+            mystr = ",".join(mylist)
+            st.sidebar.success(f"股票名称：{ code_value},板块名称：{mystr}")
+            st.session_state.filter = mystr
         else:
             st.sidebar.warning(f"股票代码：{code_value}没找到对应的板块名称！")
     # 添加一个交互式小部件
-    filter_value = st.sidebar.text_input("请输入过滤的板块名字：",)
-    # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
-
+    filter_value = st.sidebar.text_input(
+        "请输入过滤的板块名字：", st.session_state.filter)
     # create a slider widget for the low value
     # start_value = st.sidebar.slider("请选择过滤的最小值(亿元)", 1, 500, 10, 1)
     # end_value = st.sidebar.slider("请选择过滤的最大值(亿元)", 101, 30000, 101, 10)
@@ -196,7 +206,11 @@ def main():
         cur_df = df.loc[cur_date]
         # group_df = create_group(df)
         # group_df = group_df.loc[cur_date]
+        # 过滤市值
+        cur_df = cur_df[(cur_df['总市值'] >= (start_value)*100_000_000)
+                        & (cur_df['总市值'] <= (end_value)*100_000_000)]
         # 创建bar
+
         st.subheader(f"{cur_date}全部板块统计柱形图：")
         bar_df = create_bar(init_df.loc[cur_date])
 
@@ -240,10 +254,11 @@ def main():
         # st.plotly_chart(fig)
         # st.plotly_chart(fig, use_container_width=True)
         st.subheader(f"显示涨的数量为0的数据:")
-        st.dataframe(zero_df, use_container_width=True)
+        st.dataframe(zero_df)
 
         # st.title("Netlix shows analysis")
         # add this
+        # 使用beta_columns创建两个列
         st.subheader(f"AgGrid 显示的数据:")
         gb = GridOptionsBuilder.from_dataframe(cur_df)
         gb.configure_pagination(paginationPageSize=25,
@@ -258,79 +273,94 @@ def main():
 
 
 # if not result:
-        code = "国有大型银行"
-        select = result["selected_rows"]
-        if len(select) > 0:
-            # st.write(select)
-            code = select[0]['板块名称']
-            # if 'code' not in st.session_state:
-            st.session_state.code = code
-        else:
-            if 'code' in st.session_state:
-                code = st.session_state.code
+        col1, col2 = st.columns(2)
+        with col1:
+            code = "国有大型银行"
+            select = result["selected_rows"]
+            if len(select) > 0:
+                # st.write(select)
+                code = select[0]['板块名称']
+                # if 'code' not in st.session_state:
+                st.session_state.code = code
+            else:
+                # print("filter"+st.session_state.filter)
+                # code优先级最高
+                if 'code' in st.session_state:
+                    code = st.session_state.code
+                # filter优先级其次
+                # if 'filter' in st.session_state and st.session_state.filter != "":
+                #     code = st.session_state.filter
+                # print("current"+code)
+                # 过滤板块其次
+                # if filter_value != "":
+                #     code = filter_value
+            # st.write(code)title=f'{cur_date} {code}涨的数量折线图',
+            st.subheader(f'{cur_date} <<{code}>>涨的数量折线图')
 
-        # st.write(code)title=f'{cur_date} {code}涨的数量折线图',
-        st.subheader(f'{cur_date} <<{code}>>涨的数量折线图')
+            fig = go.Figure()
+            data_df = df.copy()
+            data_df = data_df[data_df['板块名称'] == code]
 
-        fig = go.Figure()
-        data_df = df.copy()
-        data_df = data_df[data_df['板块名称'] == code]
+            data_df.reset_index(inplace=True)
+            data_df['date'] = data_df['日期'].apply(
+                lambda x: x.strftime("%Y/%m/%d"))
+            fig.add_trace(go.Scatter(
+                x=data_df['date'], y=data_df['涨的数量'], mode='lines', line=dict(color='red')))
 
-        data_df.reset_index(inplace=True)
-        data_df['date'] = data_df['日期'].apply(
-            lambda x: x.strftime("%Y/%m/%d"))
-        fig.add_trace(go.Scatter(
-            x=data_df['date'], y=data_df['涨的数量'], mode='lines', line=dict(color='red')))
+            # fig.add_trace(go.Scatter(
+            #     x=data_df.index, y=data_df['跌的数量'], mode='lines'))
 
-        # fig.add_trace(go.Scatter(
-        #     x=data_df.index, y=data_df['跌的数量'], mode='lines'))
+            # add two horizontal lines at y=0 and y=1
+            # fig.add_shape(type='line', x0=min(data_df.index), y0=min(data_df['涨的数量']), x1=max(data_df.index), y1=min(data_df['涨的数量']),
+            #               line=dict(color='red', width=2))
+            # fig.add_shape(type='line', x0=0, y0=1, x1=9, y1=1,
+            #               line=dict(color='green', width=2))
+            # set the title and axis labels
+            fig.update_layout(
+                xaxis_title='日期', yaxis_title='涨的数量', xaxis_tickangle=-45)
 
-        # add two horizontal lines at y=0 and y=1
-        # fig.add_shape(type='line', x0=min(data_df.index), y0=min(data_df['涨的数量']), x1=max(data_df.index), y1=min(data_df['涨的数量']),
-        #               line=dict(color='red', width=2))
-        # fig.add_shape(type='line', x0=0, y0=1, x1=9, y1=1,
-        #               line=dict(color='green', width=2))
-        # set the title and axis labels
-        fig.update_layout(
-            xaxis_title='日期', yaxis_title='涨的数量', xaxis_tickangle=-45)
+            # fig.update_layout(xaxis_tickformat='%Y-%m-%d')
 
-        # fig.update_layout(xaxis_tickformat='%Y-%m-%d')
+            # set the maximum value of the y-axis to 2
+            fig.update_yaxes(range=[0, data_dict.get(code)])
+            # fig = fig.add_traces(fig.data)
 
-        # set the maximum value of the y-axis to 2
-        fig.update_yaxes(range=[0, data_dict.get(code)])
-        # fig = fig.add_traces(fig.data)
+            # mark the intervals on the y-axis
+            # fig.update_layout(yaxis=dict())
 
-        # mark the intervals on the y-axis
-        # fig.update_layout(yaxis=dict())
+            # customize the y-axis tick marks
+            # fig.update_layout(yaxis=dict(
+            #     tickvals=[-20, 0, 20], ticktext=['Low', 'Medium', 'High'], tickmode='linear', dtick=5))
 
-        # customize the y-axis tick marks
-        # fig.update_layout(yaxis=dict(
-        #     tickvals=[-20, 0, 20], ticktext=['Low', 'Medium', 'High'], tickmode='linear', dtick=5))
-
-        # display the plot
-        # 加入事件
-        selected_points = plotly_events(fig)
-        if len(selected_points) > 0:
-            a = selected_points[0]
-            # st.warning(a['x'])
-            data = a['x'].split("/")[2]
-            # st.warning(data)
-            # cur_day = int(data)
-            st.session_state.cur_day = int(data)
+            # display the plot
+            # 加入事件
+            selected_points = plotly_events(fig)
+            if len(selected_points) > 0:
+                a = selected_points[0]
+                # st.warning(a['x'])
+                data = a['x'].split("/")[2]
+                # st.warning(data)
+                # cur_day = int(data)
+                st.session_state.cur_day = int(data)
         # st.plotly_chart(fig, use_container_width=True)
         # title=f'{cur_date} {code} 柱形图',
-        st.subheader(f'{cur_date} <<{code}>> 柱形图',)
-        code_df = create_detail_bar(code, cur_df)
-        # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
-        fig = go.Figure([go.Bar(x=code_df['x'], y=code_df['y'], marker={
-                        'color': code_df["color"]}, text=code_df['y'], textposition='auto')])
-        fig.update_traces(
-            texttemplate='%{text:.2d}', textposition='outside')
-        fig.update_layout(autosize=True, margin=dict(
-            l=20, r=20, t=20, b=20),)
-        fig.update_layout(
-            xaxis_title='区间', yaxis_title='数量')
-        st.plotly_chart(fig, use_container_width=True)
+        with col2:
+            st.subheader(f'{cur_date} <<{code}>> 柱形图',)
+            print("cod value is :"+code)
+            code_df = create_detail_bar(code, cur_df)
+            if code_df is not None:
+                # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
+                fig = go.Figure([go.Bar(x=code_df['x'], y=code_df['y'], marker={
+                                'color': code_df["color"]}, text=code_df['y'], textposition='auto')])
+                fig.update_traces(
+                    texttemplate='%{text:.2d}', textposition='outside')
+                fig.update_layout(autosize=True, margin=dict(
+                    l=20, r=20, t=20, b=20),)
+                fig.update_layout(
+                    xaxis_title='区间', yaxis_title='数量')
+                # st.plotly_chart(fig)
+                st.plotly_chart(fig, use_container_width=True)
+            # st.plotly_chart(fig, use_container_width=True)
         # AgGrid(cur_df, gridOptions=gridOptions, theme='material')
         #    data_return_mode='AS_INPUT',
         #    update_mode='MODEL_CHANGED',
