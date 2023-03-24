@@ -144,7 +144,7 @@ def display_click_data(trace, points, state):
 
 def main():
     import pytz
-
+    st.set_page_config(page_title="板块的热力图", layout="wide")
     # 获取当前时区的时间
     tz = pytz.timezone('Asia/Shanghai')
     current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
@@ -155,7 +155,6 @@ def main():
     filter_value = "包装印刷,中药"
     start_value = "10"
     end_value = "100"
-    st.set_page_config(page_title="板块的热力图", layout="wide")
 
     st.title("使用plotly计算板块的热力图")
 
