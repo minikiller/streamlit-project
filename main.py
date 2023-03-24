@@ -17,6 +17,8 @@ options = ["0-100", "100-500", "500-1000", "1000-30000", "all", ]
 #     "500-1000": (500, 1000),
 #     "1000-30000": (1000, 30000),
 # }
+RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
+         "平盘", "<3%",     "3-5%",   "5%-涨停", "涨停"]
 
 
 def get_cur_date(day):
@@ -45,6 +47,9 @@ def get_data(range) -> tuple[pd.DataFrame, list]:
 
 @st.cache_data
 def get_code_data():
+    """
+    获得每个板块名称下的股票个数
+    """
     df = pd.read_csv(
         "data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
     data = df.groupby("板块名称")["股票代码"].count()
@@ -103,14 +108,11 @@ def create_bar(df):
     cuts = pd.cut(df['涨跌幅'], bins=bins)
     pct_chg_list = df.groupby(cuts)['涨跌幅'].count().tolist()
 
-    x = ["跌停", "跌<-5%",  "-5<-3%",     "-1<3%",    "平盘",
-         "1<3%",     "3-5%",   "5%-涨停", "涨停"]
-
     y = pct_chg_list
     color = ["green", "green", "green", "green",
              "yellow", "red", "red", "red", "red"]
 
-    data = pd.DataFrame({"x": x, "y": y, "color": color})
+    data = pd.DataFrame({"x": RANGE, "y": y, "color": color})
     return data
 
 
@@ -120,8 +122,6 @@ def create_detail_bar(code, my_df):
         st.warning("没有获得数据")
         return None
 
-    RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
-             "平盘", "<3%",     "3-5%",   "5%-涨停", "涨停"]
     color = ["green", "green", "green", "green",
              "yellow", "red", "red", "red", "red"]
 
@@ -220,7 +220,7 @@ def main():
         fig.update_traces(
             texttemplate='%{text:.2d}', textposition='outside')
         fig.update_layout(autosize=True, margin=dict(
-            l=20, r=20, t=20, b=20),)
+            l=50, r=50, t=50, b=50),)
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader(f"数据集显示：{cur_date}")
@@ -271,8 +271,6 @@ def main():
         gridOptions = gb.build()
         result = aggrid_interactive_table(cur_df)
 
-
-# if not result:
         col1, col2 = st.columns(2)
         with col1:
             code = "国有大型银行"
@@ -355,7 +353,7 @@ def main():
                 fig.update_traces(
                     texttemplate='%{text:.2d}', textposition='outside')
                 fig.update_layout(autosize=True, margin=dict(
-                    l=20, r=20, t=20, b=20),)
+                    l=70, r=70, t=70, b=70),)
                 fig.update_layout(
                     xaxis_title='区间', yaxis_title='数量')
                 # st.plotly_chart(fig)
