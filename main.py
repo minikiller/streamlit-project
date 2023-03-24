@@ -143,6 +143,14 @@ def display_click_data(trace, points, state):
 
 
 def main():
+    import pytz
+
+    # 获取当前时区的时间
+    tz = pytz.timezone('Asia/Shanghai')
+    current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    # 显示当前时间
+    st.write("当前时间是：", current_time)
 
     filter_value = "包装印刷,中药"
     start_value = "10"
