@@ -253,7 +253,7 @@ def main():
         # # Display the treemap diagram in Streamlit
         # st.plotly_chart(fig)
         # st.plotly_chart(fig, use_container_width=True)
-        st.subheader(f"显示涨的数量为0的数据:")
+        st.subheader(f"显示冰点的数据:")
         st.dataframe(zero_df)
 
         # st.title("Netlix shows analysis")
