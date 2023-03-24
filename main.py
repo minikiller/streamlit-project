@@ -9,14 +9,14 @@ import plotly.graph_objs as go
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
 from streamlit_plotly_events import plotly_events
 
-options = ["0-100", "100-500", "500-1000", "1000-30000", "全部", ]
-option_dict = {
-    "全部": (float('-inf'), float('inf')),
-    "0-100": (0, 100),
-    "100-500": (100, 500),
-    "500-1000": (500, 1000),
-    "1000-30000": (1000, 30000),
-}
+options = ["0-100", "100-500", "500-1000", "1000-30000", "all", ]
+# option_dict = {
+#     "全部": (float('-inf'), float('inf')),
+#     "0-100": (0, 100),
+#     "100-500": (100, 500),
+#     "500-1000": (500, 1000),
+#     "1000-30000": (1000, 30000),
+# }
 
 
 def get_cur_date(day):
@@ -29,14 +29,14 @@ def get_cur_date(day):
 # Define callback to retrieve data from clicked point
 
 
-@st.cache_data
-def get_data() -> tuple[pd.DataFrame, list]:
+# @st.cache_data
+def get_data(range) -> tuple[pd.DataFrame, list]:
     """
     获得股票历史信息，并计算总市值
     """
     # 显示结果
     df = pd.read_csv(
-        f"data/result_{datetime.now().strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/result_{range}_{datetime.now().strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     dates = df.index.unique().sort_values().to_list()
     # 获得当前结果集的日期列表
     dates_list = [date.strftime('%Y-%m-%d') for date in dates]
@@ -120,12 +120,12 @@ def create_detail_bar(code, my_df):
         st.warning("没有获得数据")
         return None
 
-    x = ["跌停", "跌<-5%",  "-5<-3%",     "-1<3%",    "平盘",
-         "1<3%",     "3-5%",   "5%-涨停", "涨停"]
+    RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
+             "平盘", "<3%",     "3-5%",   "5%-涨停", "涨停"]
     color = ["green", "green", "green", "green",
              "yellow", "red", "red", "red", "red"]
 
-    my = my_df[x].unstack()
+    my = my_df[RANGE].unstack()
     my = my.reset_index()
     my.columns = ['x', "date", "y"]
     # my
@@ -180,9 +180,9 @@ def main():
 
     # create a radio button widget and store the user's choice in a variable
     selected_option = st.sidebar.radio("请选择过滤的数值(亿元)", options)
-    start_value, end_value = option_dict.get(selected_option)
+    # start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
-    df, dates_list = get_data()
+    df, dates_list = get_data(selected_option)
     init_df = get_orginal_data()
     #  = get_list(df)
     # x_axis = st.sidebar.selectbox('选择日期', dates_list)
@@ -207,8 +207,8 @@ def main():
         # group_df = create_group(df)
         # group_df = group_df.loc[cur_date]
         # 过滤市值
-        cur_df = cur_df[(cur_df['总市值'] >= (start_value)*100_000_000)
-                        & (cur_df['总市值'] <= (end_value)*100_000_000)]
+        # cur_df = cur_df[(cur_df['总市值'] >= (start_value)*100_000_000)
+        #                 & (cur_df['总市值'] <= (end_value)*100_000_000)]
         # 创建bar
 
         st.subheader(f"{cur_date}全部板块统计柱形图：")
