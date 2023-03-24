@@ -1,6 +1,17 @@
 import streamlit as st
 import plotly.express as px
 
+
+import streamlit as st
+import datetime
+import pytz
+
+# 获取当前时区的时间
+tz = pytz.timezone('Asia/Shanghai')
+current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+# 显示当前时间
+st.write("当前时间是：", current_time)
 # 创建两个示例数据集
 df1 = px.data.gapminder().query("continent=='Asia'")
 df2 = px.data.gapminder().query("continent=='Europe'")
