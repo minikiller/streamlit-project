@@ -49,14 +49,14 @@ def get_data(range) -> tuple[pd.DataFrame, list]:
 
 
 @st.cache_data
-def get_code_data():
+def get_code_data(range):
     """
     获得每个板块名称下的股票个数
     """
     df = pd.read_csv(
-        "data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
-    data = df.groupby("板块名称")["股票代码"].count()
-    data_dict = data.to_dict()
+        f"data/股票代码个数_{range}.csv", index_col=0, )
+    # data = df.groupby("板块名称")["股票代码"].count()
+    data_dict = df.to_dict()
     return df, data_dict
 
 
@@ -160,8 +160,6 @@ def main():
 
     st.title("使用plotly计算板块的热力图")
 
-    code_df, data_dict = get_code_data()
-
     # 添加一些文本
     # st.write("使用plotly计算板块的热力图")
     code_value = st.sidebar.text_input("请输入股票名字：",)
@@ -192,6 +190,8 @@ def main():
     # start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
     df, dates_list = get_data(selected_option)
+    code_df, data_dict = get_code_data(selected_option)
+
     init_df = get_orginal_data()
     #  = get_list(df)
     # x_axis = st.sidebar.selectbox('选择日期', dates_list)
