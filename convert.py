@@ -47,6 +47,9 @@ def get_count(_df):
     result['涨幅比'] = result['涨的数量'] / \
         (result['涨的数量']+result['跌的数量']+result['平的数量'])*100
     # result.reset_index(inplace=True)
+    # my_df = result.loc[("2023-03-01", "其他传媒")]
+    # dd = my_df[my_df.loc['板块名称'] == "其他传媒"]
+    # print(my_df)
     return result
 
 
@@ -70,15 +73,21 @@ def get_range(_df):  # 按涨跌幅统计
     cuts = pd.cut(cur_df['涨跌幅'], bins=bins)
     pct_chg_list = cur_df.groupby(["日期", "板块名称", cuts])['涨跌幅'].count()
     cur_df = pct_chg_list.unstack()
+    # my_df = cur_df.loc["2023-03-01"]
+    # dd = my_df[my_df.loc['板块名称'] == "其他传媒"]
+    # print(dd)
+    # my_df = cur_df.loc[("2023-03-01", "其他传媒")]
+    # dd = my_df[my_df.loc['板块名称'] == "其他传媒"]
+    # print(f'range {my_df}')
     return cur_df
 
 
 def runit():
-        df = get_data()
-    # for key, value in OPTION_DICT.items():
-        # start_value, end_value = value
+    df = get_data()
+    for key, value in OPTION_DICT.items():
+        start_value, end_value = value
 
-        start_value, end_value = OPTION_DICT["100-500"]
+        # start_value, end_value = OPTION_DICT["100-500"]
         cur_df = df.copy()
         cur_df = cur_df[(cur_df['总市值'] >= (start_value)*100_000_000)
                         & (cur_df['总市值'] <= (end_value)*100_000_000)]
@@ -97,10 +106,15 @@ def runit():
         a = result.columns[:9].to_list()
         a.extend(RANGE)
         result.columns = a
-        # result.to_csv(
-        #     f"./data/result_{key}_{datetime.now().strftime('%Y%m%d')}.csv", index=False)
         result.to_csv(
-            f"./data/result_100-500_{datetime.now().strftime('%Y%m%d')}.csv", index=False)
+            f"./data/result_{key}_{datetime.now().strftime('%Y%m%d')}.csv", index=False)
+        # result.to_csv(
+        #     f"./data/result_100-500_{datetime.now().strftime('%Y%m%d')}.csv", index=False)
+        # result.set_index
+        # result.set_index("日期",inplace=True)
+        # my_df = result.loc["2023-03-01"]
+        # dd=my_df[my_df['板块名称'] == "其他传媒"]
+        # print(dd)
 
 
 if __name__ == "__main__":
