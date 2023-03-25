@@ -49,15 +49,23 @@ def get_data(range) -> tuple[pd.DataFrame, list]:
 
 
 @st.cache_data
+def get_code_df():
+    df = pd.read_csv(
+        "data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
+    return df
+# @st.cache_data
+
+
 def get_code_data(range):
     """
     获得每个板块名称下的股票个数
     """
-    df = pd.read_csv(
+
+    data = pd.read_csv(
         f"data/股票代码个数_{range}.csv", index_col=0, )
     # data = df.groupby("板块名称")["股票代码"].count()
-    data_dict = df.to_dict()
-    return df, data_dict
+    data_dict = data["股票个数"].to_dict()
+    return data_dict
 
 
 def aggrid_interactive_table(df: pd.DataFrame):
@@ -165,7 +173,7 @@ def main():
     code_value = st.sidebar.text_input("请输入股票名字：",)
     if not "filter" in st.session_state:
         st.session_state.filter = ""
-
+    code_df = get_code_df()
     # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
     if code_value.strip() != "":
         code_result = code_df[code_df['股票代码'] == code_value]
@@ -190,7 +198,8 @@ def main():
     # start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
     df, dates_list = get_data(selected_option)
-    code_df, data_dict = get_code_data(selected_option)
+    data_dict = get_code_data(selected_option)
+    print(data_dict)
 
     init_df = get_orginal_data()
     #  = get_list(df)
@@ -302,7 +311,8 @@ def main():
                 # if filter_value != "":
                 #     code = filter_value
             # st.write(code)title=f'{cur_date} {code}涨的数量折线图',
-            st.subheader(f'{cur_date} <<{code}>>涨的数量折线图')
+            st.subheader(
+                f'{cur_date} <<{code}>>涨的数量折线图,总个数：{data_dict.get(code)}')
 
             fig = go.Figure()
             data_df = df.copy()
