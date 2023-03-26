@@ -199,7 +199,7 @@ def main():
     # dates_list 用于过滤日期
     df, dates_list = get_data(selected_option)
     data_dict = get_code_data(selected_option)
-    print(data_dict)
+    # print(data_dict)
 
     init_df = get_orginal_data()
     #  = get_list(df)
