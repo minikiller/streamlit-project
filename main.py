@@ -38,13 +38,13 @@ def get_cur_date(day):
 
 
 # @st.cache_data
-def get_data(range) -> tuple[pd.DataFrame, list]:
+def get_data(stock, category, range) -> tuple[pd.DataFrame, list]:
     """
     获得股票历史信息，并计算总市值
     """
     # 显示结果
     df = pd.read_csv(
-        f"data/result_{range}_{datetime.now(tz).strftime('%Y%m%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+        f"data/sector/sector_{stock}_{category}_{range}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
     dates = df.index.unique().sort_values().to_list()
     # 获得当前结果集的日期列表
     dates_list = [date.strftime('%Y-%m-%d') for date in dates]
@@ -205,7 +205,7 @@ def main():
     selected_option = st.sidebar.radio("请选择过滤的数值(亿元)", options)
     # start_value, end_value = option_dict.get(selected_option)
     # dates_list 用于过滤日期
-    df, dates_list = get_data(selected_option)
+    df, dates_list = get_data(stock_value, category_value, selected_option)
     data_dict = get_code_data(selected_option)
     # print(data_dict)
 
