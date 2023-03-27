@@ -287,8 +287,9 @@ def main():
         # st.title("Netlix shows analysis")
         # add this
         # 使用beta_columns创建两个列
+        st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(
-            f'<span style="color: blue;font-size: 24px">{cur_date} {stock_value}{category_value}名称显示的数据:</span>', unsafe_allow_html=True)
+            f'<span style="font-size: 24px">{cur_date} <span style="color: blue"><< {stock_value} | {category_value}名称 >></span>显示的数据:</span>', unsafe_allow_html=True)
         gb = GridOptionsBuilder.from_dataframe(cur_df)
         gb.configure_pagination(paginationPageSize=25,
                                 paginationAutoPageSize=True)
@@ -299,7 +300,7 @@ def main():
 
         gridOptions = gb.build()
         result = aggrid_interactive_table(cur_df)
-
+        st.markdown("<hr>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
             code = "国有大型银行"
