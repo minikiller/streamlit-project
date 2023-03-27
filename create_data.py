@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime as dt
 from functools import lru_cache
 from constants import OPTION_DICT, RANGE
+from tqdm import tqdm
 
 
 class Stock():
@@ -139,7 +140,7 @@ class Sector():
         """
         df_dict = self.create()
         capital_dict = self.get_capital_dict()
-        for key, df in df_dict.items():
+        for key, df in tqdm(df_dict.items()):
             df = self.calcu_capital(df, capital_dict)
             self.runit(df, key)
             print(f"finish {key}")
