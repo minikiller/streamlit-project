@@ -6,7 +6,7 @@ from datetime import datetime
 # import streamlit_aggrid as ag
 from st_aggrid.grid_options_builder import GridOptionsBuilder
 import plotly.graph_objs as go
-from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode
+from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, ColumnsAutoSizeMode
 from streamlit_plotly_events import plotly_events
 import pytz
 
@@ -84,8 +84,9 @@ def aggrid_interactive_table(df: pd.DataFrame):
     options = GridOptionsBuilder.from_dataframe(
         df, enableRowGroup=True, enableValue=True, enablePivot=True)
     # editable = True was removed - need this to be non- editable
+    # options.auto_size_columns()
     options.configure_side_bar()
-
+    # options.fit_columns_on_grid_load(True)
     options.configure_selection("single")
     selection = AgGrid(
         df,
@@ -93,7 +94,8 @@ def aggrid_interactive_table(df: pd.DataFrame):
         gridOptions=options.build(),
         update_mode=GridUpdateMode.SELECTION_CHANGED,
         allow_unsafe_jscode=True,
-        height=400
+        height=400,
+        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW
     )
 
     return selection

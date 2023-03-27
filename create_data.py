@@ -130,9 +130,158 @@ class Sector():
             a = result.columns[:9].to_list()
             a.extend(RANGE)
             result.columns = a
+
+            # 计算冰点和沸点
+            hot_ice_df = self.create_hot_ice(result)
+            self.get_hot_date(hot_ice_df)
+            self.get_ice_date(hot_ice_df)
+            final_hot = self.calcu_hot(hot_ice_df)
+            hot_ice_df = pd.merge(hot_ice_df, final_hot, on=['日期', '板块名称'])
+            ice_hot = self.calcu_ice(hot_ice_df)
+            finished = pd.merge(hot_ice_df, ice_hot, on=['日期', '板块名称'])
+
+            result = pd.merge(result, finished, on=['日期', '板块名称'])
             print(result.head())
 
             self.to_csv(result, info+(key,))
+
+    def create_hot_ice(self, data):
+        """
+        计算冰点和沸点
+        """
+        hot = data.groupby(["日期", "板块名称"]).apply(lambda x: all(x['涨跌幅'] > 0))
+        # 重置索引
+        hot = hot.reset_index()
+        ice = data.groupby(["日期", "板块名称"]).apply(lambda x: all(x['涨跌幅'] < 0))
+        ice = ice.reset_index()
+        ice.columns = ["日期", "板块名称", '冰点']
+        # 重命名列名
+        hot.columns = ["日期", "板块名称", '沸点']
+        result = pd.merge(ice, hot, on=["日期", "板块名称"])
+        return result
+
+    def get_hot_date(self, df):
+
+        # 找到冰点为true的日期
+        hot_dates = df.groupby("板块名称").apply(
+            lambda x: x[x['沸点'] == True])[["日期", "沸点"]]
+        # true_ice_dates.columns=["日期"]
+        # true_ice_dates = true_ice_dates.reset_index(drop=True).loc["日期", "板块名称"]
+        hot_dates.reset_index(inplace=True)
+
+        self.hot_dates = hot_dates[["日期", "板块名称"]]
+        return self.hot_dates
+
+    def get_ice_date(self, df):
+
+        # 找到冰点为true的日期
+        ice_dates = df.groupby("板块名称").apply(
+            lambda x: x[x['冰点'] == True])[["日期", "冰点"]]
+        # true_ice_dates.columns=["日期"]
+        # true_ice_dates = true_ice_dates.reset_index(drop=True).loc["日期", "板块名称"]
+        ice_dates.reset_index(inplace=True)
+
+        self.ice_dates = ice_dates[["日期", "板块名称"]]
+        return self.ice_dates
+
+    # 计算最近的冰点为true的天数
+
+    def hot_date(self, specified_date, sect):
+
+        dt_series = self.hot_dates[self.hot_dates['板块名称'] ==
+                                   sect]['日期'].apply(lambda x: x.date())
+        # print(sect)
+        time_list = dt_series.to_list()
+        # print(time_list)
+        if len(time_list) == 0:
+            return 0
+        # specified_date = specified_date.date()
+        # 判断指定日期是否落在时间list中的区间
+        diff_days = 0
+        if specified_date in time_list:
+            return -1
+        if specified_date < time_list[0]:
+            nearest_date = time_list[0]
+            diff_days = 0
+
+        elif specified_date > time_list[-1]:
+            nearest_date = time_list[-1]
+            diff_days = (specified_date-nearest_date).days
+        else:
+            for i in range(len(time_list) - 1):
+                if time_list[i] <= specified_date < time_list[i+1]:
+                    nearest_date = time_list[i]
+                    diff_days = (specified_date-nearest_date).days
+                    break
+        return diff_days
+
+    # 计算最近的冰点为true的天数
+
+    def ice_date(self, specified_date, sect):
+        dt_series = self.ice_dates[self.ice_dates['板块名称'] ==
+                                   sect]['日期'].apply(lambda x: x.date())
+        # print(sect)
+        time_list = dt_series.to_list()
+        # print(time_list)
+        if len(time_list) == 0:
+            return 0
+        # specified_date = specified_date.date()
+        # 判断指定日期是否落在时间list中的区间
+        diff_days = 0
+        if specified_date in time_list:
+            return -1
+        if specified_date < time_list[0]:
+            nearest_date = time_list[0]
+            diff_days = 0
+
+        elif specified_date > time_list[-1]:
+            nearest_date = time_list[-1]
+            diff_days = (specified_date-nearest_date).days
+        else:
+            for i in range(len(time_list) - 1):
+                if time_list[i] <= specified_date < time_list[i+1]:
+                    nearest_date = time_list[i]
+                    diff_days = (specified_date-nearest_date).days
+                    break
+        return diff_days
+
+    def calcu_hot(self, df):
+        """
+        计算沸点天数
+        """
+        mydata = []
+        grouped = df.groupby(["板块名称", "日期"])
+        for group_name, group_data in grouped:
+            # print(type(group_name[1]))
+            re = self.hot_date(group_name[1].date(), group_name[0], )
+            mydata.append([group_name[0], group_name[1], re])
+        # data = result.groupby(["板块名称","日期"]).apply(
+        #     lambda row: 0 if row["冰点"].any() else mydate(row["日期"], row["板块名称"]))
+        # data = result.groupby(["板块名称","日期"]).apply(lambda row: 0 if row["冰点"].any() else 100)
+        # data
+        final_hot = pd.DataFrame(mydata)
+        final_hot.columns = ["板块名称", '日期', "距上次沸点天数"]
+        final_hot['日期'] = pd.to_datetime(final_hot['日期'])
+        return final_hot
+
+    def calcu_ice(self, df):
+        """
+        计算冰点天数
+        """
+        mydata = []
+        grouped = df.groupby(["板块名称", "日期"])
+        for group_name, group_data in grouped:
+            # print(type(group_name[1]))
+            re = self.ice_date(group_name[1].date(), group_name[0], )
+            mydata.append([group_name[0], group_name[1], re])
+        # data = result.groupby(["板块名称","日期"]).apply(
+        #     lambda row: 0 if row["冰点"].any() else mydate(row["日期"], row["板块名称"]))
+        # data = result.groupby(["板块名称","日期"]).apply(lambda row: 0 if row["冰点"].any() else 100)
+        # data
+        ice_hot = pd.DataFrame(mydata)
+        ice_hot.columns = ["板块名称", '日期', "距上次冰点天数"]
+        ice_hot['日期'] = pd.to_datetime(ice_hot['日期'])
+        return ice_hot
 
     def pipeline(self):
         """
@@ -140,9 +289,12 @@ class Sector():
         """
         df_dict = self.create()
         capital_dict = self.get_capital_dict()
+
         for key, df in tqdm(df_dict.items()):
             df = self.calcu_capital(df, capital_dict)
+
             self.runit(df, key)
+
             print(f"finish {key}")
 
 
