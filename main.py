@@ -287,7 +287,8 @@ def main():
         # st.title("Netlix shows analysis")
         # add this
         # 使用beta_columns创建两个列
-        st.subheader(f"AgGrid 显示的数据:")
+        st.markdown(
+            f'<span style="color: blue;font-size: 24px">{cur_date} {stock_value}{category_value}名称显示的数据:</span>', unsafe_allow_html=True)
         gb = GridOptionsBuilder.from_dataframe(cur_df)
         gb.configure_pagination(paginationPageSize=25,
                                 paginationAutoPageSize=True)
@@ -303,11 +304,13 @@ def main():
         with col1:
             code = "国有大型银行"
             select = result["selected_rows"]
+            count = 0
             if len(select) > 0:
                 # st.write(select)
                 code = select[0]['板块名称']
                 # if 'code' not in st.session_state:
                 st.session_state.code = code
+                count = select[0]['涨的数量']+select[0]['跌的数量']+select[0]['平的数量']
             else:
                 # print("filter"+st.session_state.filter)
                 # code优先级最高
@@ -322,7 +325,8 @@ def main():
                 #     code = filter_value
             # st.write(code)title=f'{cur_date} {code}涨的数量折线图',
             st.subheader(
-                f'{cur_date} <<{code}>>涨的数量折线图,总个数：{data_dict.get(code)}')
+                # f'{cur_date} <<{code}>>涨的数量折线图,总个数：{data_dict.get(code)}')
+                f'{cur_date} <<{code}>>涨的数量折线图,总个数：{count}')
 
             fig = go.Figure()
             data_df = df.copy()
@@ -349,7 +353,8 @@ def main():
             # fig.update_layout(xaxis_tickformat='%Y-%m-%d')
 
             # set the maximum value of the y-axis to 2
-            fig.update_yaxes(range=[0, data_dict.get(code)])
+            fig.update_yaxes(range=[0, count])
+            # fig.update_yaxes(range=[0, data_dict.get(code)])
             # fig = fig.add_traces(fig.data)
 
             # mark the intervals on the y-axis
