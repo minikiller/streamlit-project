@@ -23,6 +23,9 @@ options = ["0-100", "100-500", "500-1000", "1000-30000", "all", ]
 RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
          "平盘", "<3%",     "3-5%",   "5%-涨停", "涨停"]
 
+stock_options = ["同花顺", '东方财富', ]
+category_options = ['板块', "概念"]
+
 
 def get_cur_date(day):
     date = datetime.now(tz)
@@ -114,8 +117,8 @@ def create_group(df):
 def create_bar(df):
 
     # bins = list(range(-11, 12))
-    bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
-
+    # bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
+    bins = [-20, -9.97, -5, -3, -0.099, 0.099, 3, 5, 9.97, 20]
     cuts = pd.cut(df['涨跌幅'], bins=bins)
     pct_chg_list = df.groupby(cuts)['涨跌幅'].count().tolist()
 
@@ -167,6 +170,11 @@ def main():
     end_value = "100"
 
     st.title("使用plotly计算板块的热力图")
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        stock_value = st.sidebar.radio("请选择卷商:", stock_options)
+    with col2:
+        category_value = st.sidebar.radio("请选择分类:", category_options)
 
     # 添加一些文本
     # st.write("使用plotly计算板块的热力图")
