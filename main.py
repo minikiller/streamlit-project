@@ -157,12 +157,12 @@ def get_hot_ice_df(cur_df):
     双条形图
     """
     x = cur_df[cur_df['距上次沸点天数'] > 0][[
-        "板块名称", '距上次沸点天数']].sort_values(by="距上次沸点天数", ascending=True)
+        "板块名称", '距上次沸点天数']].sort_values(by="距上次沸点天数", ascending=False)
     y = cur_df[cur_df['距上次冰点天数'] > 0][[
         "板块名称", '距上次冰点天数']].sort_values(by="距上次冰点天数", ascending=False)
     y['距上次冰点天数'] = -y['距上次冰点天数'].abs()
-    print(x.head())
-    print(y.head())
+    # print(x.head())
+    # print(y.head())
     return x, y
 
 
@@ -429,8 +429,8 @@ def main():
         cur_df = df.loc[cur_date]
         hot_df, ice_df = get_hot_ice_df(cur_df)
         trace1 = go.Bar(
-            y=hot_df["板块名称"],
-            x=hot_df["距上次沸点天数"],
+            y=hot_df.head(10)["板块名称"],
+            x=hot_df.head(10)["距上次沸点天数"],
             name='沸点天数',
             orientation='h',
             marker=dict(
@@ -439,8 +439,8 @@ def main():
         )
 
         trace2 = go.Bar(
-            y=ice_df["板块名称"],
-            x=ice_df["距上次冰点天数"],
+            y=ice_df.head(10)["板块名称"],
+            x=ice_df.head(10)["距上次冰点天数"],
             name='冰点天数',
             orientation='h',
             marker=dict(
@@ -450,6 +450,7 @@ def main():
 
         data = [trace2, trace1]
         layout = go.Layout(
+            # barmode='stack',
             barmode='relative',
             title='冰点和热点水平双条形图'
         )
