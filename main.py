@@ -51,10 +51,12 @@ def get_data(stock, category, range) -> tuple[pd.DataFrame, list]:
     return (df, dates_list)
 
 
-@st.cache_data
-def get_code_df():
+# @st.cache_data
+def get_code_df(stock, category):
     df = pd.read_csv(
-        "data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
+        f"data/constant/{stock}_{category}名称_股票对应.csv", dtype={"股票代码": object})
+    # df = pd.read_csv(
+    #     f"data/constant/{stock}_{category}名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
     return df
 # @st.cache_data
 
@@ -183,9 +185,10 @@ def main():
     code_value = st.sidebar.text_input("请输入股票名字：",)
     if not "filter" in st.session_state:
         st.session_state.filter = ""
-    code_df = get_code_df()
+    code_df = get_code_df(stock_value, category_value)
     # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
     if code_value.strip() != "":
+        # print(code_df.head())
         code_result = code_df[code_df['股票代码'] == code_value]
         if not code_result.empty:
             mylist = []
@@ -379,7 +382,7 @@ def main():
         # title=f'{cur_date} {code} 柱形图',
         with col2:
             st.subheader(f'{cur_date} <<{code}>> 柱形图',)
-            print("cod value is :"+code)
+            # print("cod value is :"+code)
             code_df = create_detail_bar(code, cur_df)
             if code_df is not None:
                 # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
