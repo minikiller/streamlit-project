@@ -9,6 +9,7 @@ import plotly.graph_objs as go
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, ColumnsAutoSizeMode
 from streamlit_plotly_events import plotly_events
 import pytz
+# from deprecated import deprecated
 
 tz = pytz.timezone('Asia/Shanghai')
 
@@ -149,6 +150,20 @@ def create_detail_bar(code, my_df):
     # my
     data = pd.DataFrame({"x": my["x"], "y": my["y"], "color": color})
     return data
+
+
+def get_hot_ice_df(cur_df):
+    """
+    双条形图
+    """
+    x = cur_df[cur_df['距上次沸点天数'] > 0][[
+        "板块名称", '距上次沸点天数']].sort_values(by="距上次沸点天数", ascending=True)
+    y = cur_df[cur_df['距上次冰点天数'] > 0][[
+        "板块名称", '距上次冰点天数']].sort_values(by="距上次冰点天数", ascending=False)
+    y['距上次冰点天数'] = -y['距上次冰点天数'].abs()
+    print(x.head())
+    print(y.head())
+    return x, y
 
 
 def display_click_data(trace, points, state):
@@ -411,6 +426,36 @@ def main():
         # ag.grid(data, enableSorting=True, enableFilter=True)
         # cur_df = get_grouped(cur_df)
         # st.dataframe(cur_df, use_container_width=True)
+        cur_df = df.loc[cur_date]
+        hot_df, ice_df = get_hot_ice_df(cur_df)
+        trace1 = go.Bar(
+            y=hot_df["板块名称"],
+            x=hot_df["距上次沸点天数"],
+            name='沸点天数',
+            orientation='h',
+            marker=dict(
+                color='red'  # 设置Trace 2的颜色为红色
+            )
+        )
+
+        trace2 = go.Bar(
+            y=ice_df["板块名称"],
+            x=ice_df["距上次冰点天数"],
+            name='冰点天数',
+            orientation='h',
+            marker=dict(
+                color='green'  # 设置Trace 2的颜色为红色
+            )
+        )
+
+        data = [trace2, trace1]
+        layout = go.Layout(
+            barmode='relative',
+            title='冰点和热点水平双条形图'
+        )
+
+        fig = go.Figure(data=data, layout=layout)
+        st.plotly_chart(fig, use_container_width=True)
 
     else:
         st.write(f"您选择的数据不存在{cur_date}")

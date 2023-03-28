@@ -132,24 +132,38 @@ class Sector():
             result.columns = a
 
             # 计算冰点和沸点
-            hot_ice_df = self.create_hot_ice(result)
-            self.get_hot_date(hot_ice_df)
-            self.get_ice_date(hot_ice_df)
-            final_hot = self.calcu_hot(hot_ice_df)
+            # hot_ice_df = self.create_hot_ice(result)
+            # create_another_hot
+            hot_ice_df = self.create_another_hot(cur_df)
+            print("x"*10)
+            print(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
+                  (hot_ice_df['日期'] == "2023-03-24")])
+            print("-"*10)
+            hot_date = self.get_hot_date(hot_ice_df)
+            ice_date = self.get_ice_date(hot_ice_df)
+            final_hot = self.calcu_hot(hot_ice_df, hot_date)
             hot_ice_df = pd.merge(hot_ice_df, final_hot, on=['日期', '板块名称'])
-            ice_hot = self.calcu_ice(hot_ice_df)
+            print("x"*20)
+            print(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
+                  (hot_ice_df['日期'] == "2023-03-24")])
+            print("-"*20)
+            ice_hot = self.calcu_ice(hot_ice_df, ice_date)
             finished = pd.merge(hot_ice_df, ice_hot, on=['日期', '板块名称'])
-
+            print("x"*50)
+            print(finished[(finished['板块名称'] == "游戏") &
+                  (finished['日期'] == "2023-03-24")])
+            print("-"*50)
             result = pd.merge(result, finished, on=['日期', '板块名称'])
-            print(result.head())
+            print("x"*70)
+            print(result[(result['板块名称'] == "游戏") &
+                  (result['日期'] == "2023-03-24")])
+            print("-"*70)
 
             self.to_csv(result, info+(key,))
 
-    def create_hot_ice(self, data):
-        """
-        计算冰点和沸点
-        """
+    def create_another_hot(self, data):
         hot = data.groupby(["日期", "板块名称"]).apply(lambda x: all(x['涨跌幅'] > 0))
+
         # 重置索引
         hot = hot.reset_index()
         ice = data.groupby(["日期", "板块名称"]).apply(lambda x: all(x['涨跌幅'] < 0))
@@ -160,36 +174,73 @@ class Sector():
         result = pd.merge(ice, hot, on=["日期", "板块名称"])
         return result
 
-    def get_hot_date(self, df):
+    def create_hot_ice(self, data):
 
+        daily_data = pd.DataFrame(columns=["日期", "板块名称", "沸点", '冰点'])
+        grouped_data = data.groupby("板块名称")
+
+        # 遍历每个板块
+        # 按照 date 和 sector 两个字段进行分组
+        grouped_data = data.groupby(["日期", "板块名称"])
+
+        # 遍历每个分组
+        for (date, sector), group_data in grouped_data:
+            # 获取当日所有股票的涨跌幅数据
+            # 获取该分组中股票的涨跌幅情况
+            day_data = group_data["涨跌幅"]
+            # day_data = sector_data.loc[sector_data["日期"] == date, "涨跌幅"]
+
+            # 判断当日的涨跌幅情况是否全为正数，全为负数，还是既有正数又有负数
+            if all(day_data > 0):
+                hot = 1
+                cold = 0
+            elif all(day_data < 0):
+                hot = 0
+                cold = 1
+            else:
+                hot = 0
+                cold = 0
+
+            # 将结果添加到 daily_data 中
+            # daily_data = daily_data.append(
+            #     {"日期": date, "板块名称": sector, "沸点": hot, "冰点": cold}, ignore_index=True)
+            daily_data = pd.concat([daily_data, pd.DataFrame(
+                {"日期": date, "板块名称": sector, "沸点": hot, "冰点": cold}, index=[0])], ignore_index=True)
+        # 将 daily_data 合并回原始 DataFrame 中
+        # data = pd.merge(data, daily_data, on=["日期", "板块名称"])
+        return daily_data
+
+    def get_hot_date(self, df):
+        mydf = df.copy()
         # 找到冰点为true的日期
-        hot_dates = df.groupby("板块名称").apply(
+        hot_dates = mydf.groupby("板块名称").apply(
             lambda x: x[x['沸点'] == True])[["日期", "沸点"]]
         # true_ice_dates.columns=["日期"]
         # true_ice_dates = true_ice_dates.reset_index(drop=True).loc["日期", "板块名称"]
         hot_dates.reset_index(inplace=True)
 
-        self.hot_dates = hot_dates[["日期", "板块名称"]]
-        return self.hot_dates
+        hot_dates = hot_dates[["日期", "板块名称"]]
+        return hot_dates
 
     def get_ice_date(self, df):
 
         # 找到冰点为true的日期
-        ice_dates = df.groupby("板块名称").apply(
+        mydf = df.copy()
+        ice_dates = mydf.groupby("板块名称").apply(
             lambda x: x[x['冰点'] == True])[["日期", "冰点"]]
         # true_ice_dates.columns=["日期"]
         # true_ice_dates = true_ice_dates.reset_index(drop=True).loc["日期", "板块名称"]
         ice_dates.reset_index(inplace=True)
 
-        self.ice_dates = ice_dates[["日期", "板块名称"]]
-        return self.ice_dates
+        ice_dates = ice_dates[["日期", "板块名称"]]
+        return ice_dates
 
     # 计算最近的冰点为true的天数
 
-    def hot_date(self, specified_date, sect):
+    def caculate_hot_date(self, specified_date, sect, hot_dates):
 
-        dt_series = self.hot_dates[self.hot_dates['板块名称'] ==
-                                   sect]['日期'].apply(lambda x: x.date())
+        dt_series = hot_dates[hot_dates['板块名称'] ==
+                              sect]['日期'].apply(lambda x: x.date())
         # print(sect)
         time_list = dt_series.to_list()
         # print(time_list)
@@ -217,9 +268,9 @@ class Sector():
 
     # 计算最近的冰点为true的天数
 
-    def ice_date(self, specified_date, sect):
-        dt_series = self.ice_dates[self.ice_dates['板块名称'] ==
-                                   sect]['日期'].apply(lambda x: x.date())
+    def caculate_ice_date(self, specified_date, sect, ice_dates):
+        dt_series = ice_dates[ice_dates['板块名称'] ==
+                              sect]['日期'].apply(lambda x: x.date())
         # print(sect)
         time_list = dt_series.to_list()
         # print(time_list)
@@ -245,7 +296,7 @@ class Sector():
                     break
         return diff_days
 
-    def calcu_hot(self, df):
+    def calcu_hot(self, df, hot_date):
         """
         计算沸点天数
         """
@@ -253,7 +304,8 @@ class Sector():
         grouped = df.groupby(["板块名称", "日期"])
         for group_name, group_data in grouped:
             # print(type(group_name[1]))
-            re = self.hot_date(group_name[1].date(), group_name[0], )
+            re = self.caculate_hot_date(
+                group_name[1].date(), group_name[0], hot_date)
             mydata.append([group_name[0], group_name[1], re])
         # data = result.groupby(["板块名称","日期"]).apply(
         #     lambda row: 0 if row["冰点"].any() else mydate(row["日期"], row["板块名称"]))
@@ -264,7 +316,7 @@ class Sector():
         final_hot['日期'] = pd.to_datetime(final_hot['日期'])
         return final_hot
 
-    def calcu_ice(self, df):
+    def calcu_ice(self, df, ice_date):
         """
         计算冰点天数
         """
@@ -272,7 +324,8 @@ class Sector():
         grouped = df.groupby(["板块名称", "日期"])
         for group_name, group_data in grouped:
             # print(type(group_name[1]))
-            re = self.ice_date(group_name[1].date(), group_name[0], )
+            re = self.caculate_ice_date(
+                group_name[1].date(), group_name[0], ice_date)
             mydata.append([group_name[0], group_name[1], re])
         # data = result.groupby(["板块名称","日期"]).apply(
         #     lambda row: 0 if row["冰点"].any() else mydate(row["日期"], row["板块名称"]))
