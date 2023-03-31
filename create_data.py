@@ -2,6 +2,7 @@
 自动生成按照板块的统计结果文件，以用于streamlit中调用
 """
 
+import datetime
 import pandas as pd
 from datetime import datetime as dt
 from functools import lru_cache
@@ -21,6 +22,31 @@ class Stock():
         df.drop(columns=['板块名称'], inplace=True)
         return df
 
+    def get_fund_data(self) -> pd.DataFrame:
+        """
+        获得资金流向数据
+        """
+        df = pd.read_csv(
+            f"./data/Fund_{dt.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], dtype={"股票代码": object})
+        df.reset_index(inplace=True)
+        start_day, end_day = self.get_start_end_day()
+        df_selected = df.loc[(df['日期'] >= pd.to_datetime(start_day))
+                             & (df['日期'] <= pd.to_datetime(end_day))]
+        # df.drop(columns=['板块名称'], inplace=True)
+        return df_selected[["日期", "股票代码", "主力净流入-净额", "主力净流入-净占比"]]
+
+    def get_start_end_day(self):
+        """
+        获得本月的第一天和最后一天
+        """
+        import calendar
+
+        today = datetime.date.today()
+        start_day = today.replace(day=1)
+        end_day = today.replace(
+            day=calendar.monthrange(today.year, today.month)[1])
+        return start_day, end_day
+
 
 class Sector():
     """
@@ -28,22 +54,48 @@ class Sector():
     """
     stock_options = ["同花顺", '东方财富', ]
     category_options = ['板块', "概念"]
+    stock = Stock()
 
     def create(self) -> dict:
         df_dict = {}
-        stock = Stock()
+
         # 获得股票历史信息
-        df = stock.get_stock_data()
+        df = self.stock.get_stock_data()
+        fund_df = self.stock.get_fund_data()
+        df = pd.merge(df, fund_df, on=["日期", "股票代码"])
         for stock in self.stock_options:
             for category in self.category_options:
                 sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
                                         index_col=0, dtype={"股票代码": object})
                 # df_list.append(sector_df)
                 merged_df = pd.merge(df, sector_df, on='股票代码')
+                # merged_fund_df = pd.merge(fund_df, sector_df, on='股票代码')
+                # final_df = pd.merge(
+                #     merged_df, merged_fund_df, on=["日期", "股票代码", "板块名称"])
                 file_name = f"./data/merge/merge_{stock}_{category}名称_{dt.now().strftime('%Y-%m-%d')}.csv"
                 merged_df.to_csv(file_name, index=False)
                 df_dict[(stock, category)] = merged_df
         return df_dict
+
+    def create_fund(self) -> dict:
+        df_dict = {}
+
+        # 获得股票历史信息
+        df = self.stock.get_fund_data()
+        for stock in self.stock_options:
+            for category in self.category_options:
+                sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
+                                        index_col=0, dtype={"股票代码": object})
+                # df_list.append(sector_df)
+                merged_df = pd.merge(df, sector_df, on='股票代码')
+                file_name = f"./data/merge/merge_fund_{stock}_{category}名称_{dt.now().strftime('%Y-%m-%d')}.csv"
+                merged_df.to_csv(file_name, index=False)
+                df_dict[(stock, category)] = merged_df
+        return df_dict
+
+    # def get_fund_df(self):
+    #     df = pd.read_csv(f"../data/constant/{stock}_{category}名称_股票对应.csv",
+    #                      index_col=0, dtype={"股票代码": object})
 
     @lru_cache
     def get_capital_dict(self) -> dict:
@@ -108,6 +160,15 @@ class Sector():
         cur_df = pct_chg_list.unstack()
         return cur_df
 
+    def cacul_fund(self, _df):
+        """
+        统计资金流入
+        """
+        cur_df = _df.copy()
+        data = cur_df.groupby(['日期', "板块名称"]).agg(
+            {"主力净流入-净额": "sum", "主力净流入-净占比": "mean"})
+        return data
+
     def runit(self, _df, info):
         for key, value in OPTION_DICT.items():
             start_value, end_value = value
@@ -118,6 +179,8 @@ class Sector():
             result = self.get_count(cur_df)
             value_df = self.get_sum(cur_df)
             final_df = result.join(value_df, on=["日期", "板块名称"])
+            fund_df = self.cacul_fund(cur_df)
+            final_df = final_df.join(fund_df, on=["日期", "板块名称"])
             # final_df.dropna(inplace=True, axis=0)
             # 将Salary列格式化为亿元
             final_df['总市值亿元'] = final_df['总市值'].apply(
@@ -127,7 +190,7 @@ class Sector():
             result = pd.merge(final_df, db, on=["日期", '板块名称'])
             result.reset_index(inplace=True, level=[0, 1])
             # 获得字段的前八列
-            a = result.columns[:9].to_list()
+            a = result.columns[:11].to_list()
             a.extend(RANGE)
             result.columns = a
 

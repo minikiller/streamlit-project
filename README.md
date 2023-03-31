@@ -69,7 +69,7 @@ code_df = pd.read_csv(
 -,-,-,19901219,600652,退市游久,-,-
 
 
-## tools 下的create_data.py 自动生成板块统计文件
+## tools 下的 create_data.py 自动生成板块统计文件
 
 
 ## 保存streamlit-aggrid的条件

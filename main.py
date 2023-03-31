@@ -91,15 +91,36 @@ def aggrid_interactive_table(df: pd.DataFrame):
     options.configure_side_bar()
     # options.fit_columns_on_grid_load(True)
     options.configure_selection("single")
-    selection = AgGrid(
-        df,
-        enable_enterprise_modules=True,
-        gridOptions=options.build(),
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
-        allow_unsafe_jscode=True,
-        height=400,
-        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW
-    )
+    print("do it again")
+    if "state" in st.session_state:
+        print(f"get it {st.session_state.state}")
+        selection = AgGrid(
+            df,
+            enable_enterprise_modules=True,
+            gridOptions=options.build(),
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            save_settings=True,
+            load_settings=True,
+            allow_unsafe_jscode=True,
+            height=400,
+            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
+            column_state=st.session_state.state,
+            # key='my_grid',
+        )
+    else:
+        print("not get it")
+        selection = AgGrid(
+            df,
+            enable_enterprise_modules=True,
+            gridOptions=options.build(),
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            save_settings=True,
+            load_settings=True,
+            allow_unsafe_jscode=True,
+            height=400,
+            # key='my_grid',
+            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
+        )
 
     return selection
 
@@ -318,6 +339,13 @@ def main():
 
         gridOptions = gb.build()
         result = aggrid_interactive_table(cur_df)
+        
+        column_state = result.get("column_state")
+        if column_state and len(column_state) > 0:
+            # print(grid_result)
+            st.session_state.state = column_state
+        #     print(column_state)
+        #
         st.markdown("<hr>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
         with col1:
@@ -460,6 +488,8 @@ def main():
 
     else:
         st.write(f"您选择的数据不存在{cur_date}")
+        # zero_df=pd.DataFrame()
+        # result = aggrid_interactive_table(zero_df)
 
 
 # 运行 Streamlit 应用程序
