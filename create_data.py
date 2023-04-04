@@ -1,13 +1,49 @@
 """
-自动生成按照板块的统计结果文件，以用于streamlit中调用
+自动生成按照板块的统计结果文件,以用于streamlit中调用
 """
-
-import datetime
+from datetime import date
+# import datetime
 import pandas as pd
 from datetime import datetime as dt
 from functools import lru_cache
 from constants import OPTION_DICT, RANGE
 from tqdm import tqdm
+import logging
+import colorlog
+
+# Configure the logger
+logger = logging.getLogger('my_logger')
+
+
+def setup_logger():
+    logger.setLevel(logging.DEBUG)
+
+    # Create a colored log formatter
+    formatter = colorlog.ColoredFormatter(
+    (
+        '%(log_color)s%(levelname)-5s%(reset)s '
+        '%(yellow)s[%(asctime)s]%(reset)s'
+        '%(white)s %(name)s %(funcName)s %(bold_purple)s:%(lineno)d%(reset)s '
+        '%(log_color)s%(message)s%(reset)s'
+    ),
+    datefmt='%y-%m-%d %H:%M:%S',
+    log_colors={
+        'DEBUG': 'blue',
+        'INFO': 'bold_cyan',
+        'WARNING': 'red',
+        'ERROR': 'bg_bold_red',
+        'CRITICAL': 'red,bg_white',
+    }
+)
+
+    # Create a console handler and add the formatter to it
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+
+setup_logger()
 
 
 class Stock():
@@ -20,6 +56,7 @@ class Stock():
             f"./data/Hist_{dt.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
         df.reset_index(inplace=True)
         df.drop(columns=['板块名称'], inplace=True)
+        assert not df.empty
         return df
 
     def get_fund_data(self) -> pd.DataFrame:
@@ -30,9 +67,11 @@ class Stock():
             f"./data/Fund_{dt.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], dtype={"股票代码": object})
         df.reset_index(inplace=True)
         start_day, end_day = self.get_start_end_day()
+        logger.info(start_day, end_day)
         df_selected = df.loc[(df['日期'] >= pd.to_datetime(start_day))
                              & (df['日期'] <= pd.to_datetime(end_day))]
         # df.drop(columns=['板块名称'], inplace=True)
+        assert not df_selected.empty
         return df_selected[["日期", "股票代码", "主力净流入-净额", "主力净流入-净占比"]]
 
     def get_start_end_day(self):
@@ -41,11 +80,17 @@ class Stock():
         """
         import calendar
 
-        today = datetime.date.today()
+        today = date.today()
         start_day = today.replace(day=1)
         end_day = today.replace(
             day=calendar.monthrange(today.year, today.month)[1])
         return start_day, end_day
+
+    def get_cur_month(self):
+        """
+        获得本月 
+        """
+        return dt.now().strftime('%Y-%m')
 
 
 class Sector():
@@ -61,8 +106,11 @@ class Sector():
 
         # 获得股票历史信息
         df = self.stock.get_stock_data()
+        logging.info(df.info())
         fund_df = self.stock.get_fund_data()
+        logging.info(fund_df.info())
         df = pd.merge(df, fund_df, on=["日期", "股票代码"])
+
         for stock in self.stock_options:
             for category in self.category_options:
                 sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
@@ -121,12 +169,13 @@ class Sector():
         save to csv file
         """
         stock, category, range = info
-        file_name = f"./data/sector/sector_{stock}_{category}_{range}.csv"
+        cur_month = self.stock.get_cur_month()
+        file_name = f"./data/{cur_month}/sector/sector_{stock}_{category}_{range}.csv"
         df.to_csv(file_name, index=False)
 
     def get_count(self, _df):
         """
-        根据日期,板块名称对涨跌幅进行
+        根据日期,板块名称对涨跌幅进行分组分析
         """
         cur_df = _df.copy()
         # 按股票名称分组，并统计涨幅大于0和小于0的股票数量
@@ -158,6 +207,7 @@ class Sector():
         cuts = pd.cut(cur_df['涨跌幅'], bins=bins)
         pct_chg_list = cur_df.groupby(["日期", "板块名称", cuts])['涨跌幅'].count()
         cur_df = pct_chg_list.unstack()
+        print(cur_df.info())
         return cur_df
 
     def cacul_fund(self, _df):
@@ -170,6 +220,9 @@ class Sector():
         return data
 
     def runit(self, _df, info):
+        """
+        执行主函数
+        """
         for key, value in OPTION_DICT.items():
             start_value, end_value = value
             cur_df = _df.copy()
@@ -186,12 +239,18 @@ class Sector():
             final_df['总市值亿元'] = final_df['总市值'].apply(
                 lambda x: '{:.2f}'.format(x/100000000))
 
+            print(cur_df.info())
             db = self.get_range(cur_df)
             result = pd.merge(final_df, db, on=["日期", '板块名称'])
             result.reset_index(inplace=True, level=[0, 1])
+            print(result.info())
             # 获得字段的前八列
             a = result.columns[:11].to_list()
+            print(len(a))
             a.extend(RANGE)
+
+            print(len(a))
+            print(len(result.columns))
             result.columns = a
 
             # 计算冰点和沸点
