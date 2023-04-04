@@ -162,7 +162,7 @@ class StockStreamlitApp():
 
         return selection
 
-    @st.cache_data
+    # @st.cache_data
     def get_orginal_data(_self,) -> tuple[pd.DataFrame, list]:
         """
         获得股票原始历史信息 
