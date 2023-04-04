@@ -42,13 +42,29 @@ class StockStreamlitApp():
 
         # 创建日志处理程序
         handler = logging.StreamHandler()
-        handler.setFormatter(colorlog.ColoredFormatter(
-            "%(log_color)s%(levelname)s:%(name)s:%(message)s"))
+        # Create a colored log formatter
+        formatter = colorlog.ColoredFormatter(
+            (
+                '%(log_color)s%(levelname)-5s%(reset)s '
+                '%(yellow)s[%(asctime)s]%(reset)s'
+                '%(white)s %(name)s %(funcName)s %(bold_purple)s:%(lineno)d%(reset)s '
+                '%(log_color)s%(message)s%(reset)s'
+            ),
+            datefmt='%y-%m-%d %H:%M:%S',
+            log_colors={
+                'DEBUG': 'blue',
+                'INFO': 'bold_cyan',
+                'WARNING': 'red',
+                'ERROR': 'bg_bold_red',
+                'CRITICAL': 'red,bg_white',
+            })
 
         # 创建日志器
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.DEBUG)
         self.logger = colorlog.getLogger(__name__)
         self.logger.addHandler(handler)
-        self.logger.setLevel(logging.DEBUG)
+        
 
 
         # 配置Streamlit日志记录器
