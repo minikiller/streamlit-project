@@ -315,6 +315,7 @@ class StockStreamlitApp():
         if 'cur_day' not in st.session_state:
             st.session_state.cur_day = 1
         # stored_value = st.session_state.cur_day
+        st.sidebar.warning(f"数据有效时间：{dates_list}")
         cur_day = st.sidebar.slider(
             "请选择您想查看的天", 1, 31, st.session_state.cur_day)
         # st.session_state.cur_day = cur_day

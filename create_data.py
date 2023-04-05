@@ -20,21 +20,21 @@ def setup_logger():
 
     # Create a colored log formatter
     formatter = colorlog.ColoredFormatter(
-    (
-        '%(log_color)s%(levelname)-5s%(reset)s '
-        '%(yellow)s[%(asctime)s]%(reset)s'
-        '%(white)s %(name)s %(funcName)s %(bold_purple)s:%(lineno)d%(reset)s '
-        '%(log_color)s%(message)s%(reset)s'
-    ),
-    datefmt='%y-%m-%d %H:%M:%S',
-    log_colors={
-        'DEBUG': 'blue',
-        'INFO': 'bold_cyan',
-        'WARNING': 'red',
-        'ERROR': 'bg_bold_red',
-        'CRITICAL': 'red,bg_white',
-    }
-)
+        (
+            '%(log_color)s%(levelname)-5s%(reset)s '
+            '%(yellow)s[%(asctime)s]%(reset)s'
+            '%(white)s %(name)s %(funcName)s %(bold_purple)s:%(lineno)d%(reset)s '
+            '%(log_color)s%(message)s%(reset)s'
+        ),
+        datefmt='%y-%m-%d %H:%M:%S',
+        log_colors={
+            'DEBUG': 'blue',
+            'INFO': 'bold_cyan',
+            'WARNING': 'red',
+            'ERROR': 'bg_bold_red',
+            'CRITICAL': 'red,bg_white',
+        }
+    )
 
     # Create a console handler and add the formatter to it
     console_handler = logging.StreamHandler()
@@ -51,9 +51,14 @@ class Stock():
     管理股票历史数据
     """
 
+    def __init__(self, date_string) -> None:
+
+        self.cur_date = dt.now() if date_string == "" else dt.strptime(date_string, "%Y-%m-%d")
+        self.cur_date_str = self.cur_date.strftime('%Y-%m-%d')
+
     def get_stock_data(self) -> pd.DataFrame:
         df = pd.read_csv(
-            f"./data/Hist_{dt.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
+            f"./data/Hist_{self.cur_date_str}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
         df.reset_index(inplace=True)
         df.drop(columns=['板块名称'], inplace=True)
         assert not df.empty
@@ -64,7 +69,7 @@ class Stock():
         获得资金流向数据
         """
         df = pd.read_csv(
-            f"./data/Fund_{dt.now().strftime('%Y-%m-%d')}.csv", parse_dates=['日期'], dtype={"股票代码": object})
+            f"./data/Fund_{self.cur_date_str}.csv", parse_dates=['日期'], dtype={"股票代码": object})
         df.reset_index(inplace=True)
         start_day, end_day = self.get_start_end_day()
         logger.info(start_day, end_day)
@@ -80,7 +85,7 @@ class Stock():
         """
         import calendar
 
-        today = date.today()
+        today = self.cur_date
         start_day = today.replace(day=1)
         end_day = today.replace(
             day=calendar.monthrange(today.year, today.month)[1])
@@ -90,7 +95,7 @@ class Stock():
         """
         获得本月 
         """
-        return dt.now().strftime('%Y-%m')
+        return self.cur_date.strftime('%Y-%m')
 
 
 class Sector():
@@ -99,7 +104,7 @@ class Sector():
     """
     stock_options = ["同花顺", '东方财富', ]
     category_options = ['板块', "概念"]
-    stock = Stock()
+    stock = Stock("2023-03-31")
 
     def create(self) -> dict:
         df_dict = {}
@@ -297,9 +302,17 @@ class Sector():
         return result
 
     def create_hot_ice(self, data):
+        """确定冰点和沸点的条件
+
+        Args:
+            data (DataFrame): _description_
+
+        Returns:
+            DataFrame: _de  scription_
+        """
 
         daily_data = pd.DataFrame(columns=["日期", "板块名称", "沸点", '冰点'])
-        grouped_data = data.groupby("板块名称")
+        # grouped_data = data.groupby("板块名称")
 
         # 遍历每个板块
         # 按照 date 和 sector 两个字段进行分组
