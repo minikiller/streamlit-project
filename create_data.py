@@ -104,7 +104,9 @@ class Sector():
     """
     stock_options = ["同花顺", '东方财富', ]
     category_options = ['板块', "概念"]
-    stock = Stock("2023-03-31")
+
+    def __init__(self, begin_str):
+        self.stock = Stock("") if begin_str == "" else Stock(begin_str)
 
     def create(self) -> dict:
         df_dict = {}
@@ -112,6 +114,8 @@ class Sector():
         # 获得股票历史信息
         df = self.stock.get_stock_data()
         logging.info(df.info())
+
+        # 资金流入，暂时不用
         fund_df = self.stock.get_fund_data()
         logging.info(fund_df.info())
         df = pd.merge(df, fund_df, on=["日期", "股票代码"])
@@ -212,7 +216,7 @@ class Sector():
         cuts = pd.cut(cur_df['涨跌幅'], bins=bins)
         pct_chg_list = cur_df.groupby(["日期", "板块名称", cuts])['涨跌幅'].count()
         cur_df = pct_chg_list.unstack()
-        print(cur_df.info())
+        logger.info(cur_df.info())
         return cur_df
 
     def cacul_fund(self, _df):
@@ -220,6 +224,7 @@ class Sector():
         统计资金流入
         """
         cur_df = _df.copy()
+        print(cur_df.info())
         data = cur_df.groupby(['日期', "板块名称"]).agg(
             {"主力净流入-净额": "sum", "主力净流入-净占比": "mean"})
         return data
@@ -244,47 +249,47 @@ class Sector():
             final_df['总市值亿元'] = final_df['总市值'].apply(
                 lambda x: '{:.2f}'.format(x/100000000))
 
-            print(cur_df.info())
+            logger.info(cur_df.info())
             db = self.get_range(cur_df)
             result = pd.merge(final_df, db, on=["日期", '板块名称'])
             result.reset_index(inplace=True, level=[0, 1])
-            print(result.info())
+            logger.info(result.info())
             # 获得字段的前八列
             a = result.columns[:11].to_list()
-            print(len(a))
+            logger.info(len(a))
             a.extend(RANGE)
 
-            print(len(a))
-            print(len(result.columns))
+            logger.info(len(a))
+            logger.info(len(result.columns))
             result.columns = a
 
             # 计算冰点和沸点
             # hot_ice_df = self.create_hot_ice(result)
             # create_another_hot
             hot_ice_df = self.create_another_hot(cur_df)
-            print("x"*10)
-            print(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
-                  (hot_ice_df['日期'] == "2023-03-24")])
-            print("-"*10)
+            logger.info("x"*10)
+            logger.info(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
+                                   (hot_ice_df['日期'] == "2023-03-24")])
+            logger.info("-"*10)
             hot_date = self.get_hot_date(hot_ice_df)
             ice_date = self.get_ice_date(hot_ice_df)
             final_hot = self.calcu_hot(hot_ice_df, hot_date)
             hot_ice_df = pd.merge(hot_ice_df, final_hot, on=['日期', '板块名称'])
-            print("x"*20)
-            print(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
-                  (hot_ice_df['日期'] == "2023-03-24")])
-            print("-"*20)
+            logger.info("x"*20)
+            logger.info(hot_ice_df[(hot_ice_df['板块名称'] == "游戏") &
+                                   (hot_ice_df['日期'] == "2023-03-24")])
+            logger.info("-"*20)
             ice_hot = self.calcu_ice(hot_ice_df, ice_date)
             finished = pd.merge(hot_ice_df, ice_hot, on=['日期', '板块名称'])
-            print("x"*50)
-            print(finished[(finished['板块名称'] == "游戏") &
-                  (finished['日期'] == "2023-03-24")])
-            print("-"*50)
+            logger.info("x"*50)
+            logger.info(finished[(finished['板块名称'] == "游戏") &
+                                 (finished['日期'] == "2023-03-24")])
+            logger.info("-"*50)
             result = pd.merge(result, finished, on=['日期', '板块名称'])
-            print("x"*70)
-            print(result[(result['板块名称'] == "游戏") &
-                  (result['日期'] == "2023-03-24")])
-            print("-"*70)
+            logger.info("x"*70)
+            logger.info(result[(result['板块名称'] == "游戏") &
+                               (result['日期'] == "2023-03-24")])
+            logger.info("-"*70)
 
             self.to_csv(result, info+(key,))
 
@@ -346,8 +351,10 @@ class Sector():
         return daily_data
 
     def get_hot_date(self, df):
+        """
+        找到沸点为true的日期
+        """
         mydf = df.copy()
-        # 找到冰点为true的日期
         hot_dates = mydf.groupby("板块名称").apply(
             lambda x: x[x['沸点'] == True])[["日期", "沸点"]]
         # true_ice_dates.columns=["日期"]
@@ -358,8 +365,9 @@ class Sector():
         return hot_dates
 
     def get_ice_date(self, df):
-
-        # 找到冰点为true的日期
+        """
+        找到冰点为true的日期
+        """
         mydf = df.copy()
         ice_dates = mydf.groupby("板块名称").apply(
             lambda x: x[x['冰点'] == True])[["日期", "冰点"]]
@@ -376,9 +384,9 @@ class Sector():
 
         dt_series = hot_dates[hot_dates['板块名称'] ==
                               sect]['日期'].apply(lambda x: x.date())
-        # print(sect)
+        # logger.info(sect)
         time_list = dt_series.to_list()
-        # print(time_list)
+        # logger.info(time_list)
         if len(time_list) == 0:
             return 0
         # specified_date = specified_date.date()
@@ -401,14 +409,24 @@ class Sector():
                     break
         return diff_days
 
-    # 计算最近的冰点为true的天数
-
     def caculate_ice_date(self, specified_date, sect, ice_dates):
+        """
+        计算最近的冰点为true的天数
+
+        Args:
+            specified_date (_type_): _description_
+            sect (_type_): _description_
+            ice_dates (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
         dt_series = ice_dates[ice_dates['板块名称'] ==
                               sect]['日期'].apply(lambda x: x.date())
-        # print(sect)
+        # logger.info(sect)
         time_list = dt_series.to_list()
-        # print(time_list)
+        # logger.info(time_list)
         if len(time_list) == 0:
             return 0
         # specified_date = specified_date.date()
@@ -438,7 +456,7 @@ class Sector():
         mydata = []
         grouped = df.groupby(["板块名称", "日期"])
         for group_name, group_data in grouped:
-            # print(type(group_name[1]))
+            # logger.info(type(group_name[1]))
             re = self.caculate_hot_date(
                 group_name[1].date(), group_name[0], hot_date)
             mydata.append([group_name[0], group_name[1], re])
@@ -458,7 +476,7 @@ class Sector():
         mydata = []
         grouped = df.groupby(["板块名称", "日期"])
         for group_name, group_data in grouped:
-            # print(type(group_name[1]))
+            # logger.info(type(group_name[1]))
             re = self.caculate_ice_date(
                 group_name[1].date(), group_name[0], ice_date)
             mydata.append([group_name[0], group_name[1], re])
@@ -483,9 +501,9 @@ class Sector():
 
             self.runit(df, key)
 
-            print(f"finish {key}")
+            logger.info(f"finish {key}")
 
 
 if __name__ == "__main__":
-    sector = Sector()
+    sector = Sector("")
     sector.pipeline()

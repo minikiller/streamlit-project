@@ -64,8 +64,6 @@ class StockStreamlitApp():
         handler.setLevel(logging.DEBUG)
         self.logger = colorlog.getLogger(__name__)
         self.logger.addHandler(handler)
-        
-
 
         # 配置Streamlit日志记录器
 
@@ -192,6 +190,15 @@ class StockStreamlitApp():
         return df.groupby(df.index).sum()
 
     def create_bar(self, df):
+        """
+        产生当日的涨跌幅统计数据
+
+        Args:
+            df (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
 
         # bins = list(range(-11, 12))
         # bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
