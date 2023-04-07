@@ -11,7 +11,7 @@ from constants import OPTION_DICT, RANGE
 from tqdm import tqdm
 import logging
 import colorlog
-
+from stqdm import stqdm
 # Configure the logger
 logger = logging.getLogger('my_logger')
 
@@ -108,19 +108,20 @@ class Stock():
 
     def create_python_file(self):
         import glob
-        directory_path = '../pages'  # replace with your directory path
+        directory_path = './pages'  # replace with your directory path
         file_names = glob.glob(directory_path + '/*')
 
         # print([os.path.basename(file) for file in file_names])
-        file_name = str(len(file_names)).zfill(
-            2)+"_"+self.cur_date.strftime("%m_%Y年%m月")+".py"
+        file_name = "pages/"+str(len(file_names)+1).zfill(2) + \
+            "_"+self.cur_date.strftime("%Y年%m月")+".py"
+        logger.debug(file_name)
 
         code = f"""\
-        from utils.builder import StockStreamlitApp
+from utils.builder import StockStreamlitApp
 
-        if __name__ == "__main__":
-            stock = StockStreamlitApp("{self.get_cur_month()}")
-            stock.main()\
+if __name__ == "__main__":
+    stock = StockStreamlitApp("{self.get_cur_month()}")
+    stock.main()\
         """
         with open(file_name, "w") as f:
             f.write(code)
@@ -537,14 +538,18 @@ class Sector():
         df_dict = self.create()
         capital_dict = self.get_capital_dict()
 
-        for key, df in tqdm(df_dict.items()):
+        for key, df in stqdm(df_dict.items(), backend=False, frontend=True):
             df = self.calcu_capital(df, capital_dict)
 
             self.runit(df, key)
 
             logger.info(f"finish {key}")
+        self.stock.create_python_file()
 
 
 if __name__ == "__main__":
     sector = Sector("2022-03-01", "Hist_20220101_20220701")
     sector.pipeline()
+    # stock = Stock("2021-03-01", "Hist_20220101_20220701")
+    # stock.create_python_file()
+    # sector.pipeline()
