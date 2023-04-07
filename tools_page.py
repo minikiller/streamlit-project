@@ -4,6 +4,26 @@ from datetime import datetime
 
 from process import Sector
 
+# 表格数据
+data = [
+    ["Item", "Price"],
+    ["Apple", "$0.99"],
+    ["Banana", "$0.50"],
+    ["Orange", "$1.20"]
+]
+
+# 输出表格
+table = "|".join(data[0]) + "\n" + "|".join(["---"]*len(data[0])) + "\n"
+for i in range(1, len(data)):
+    table += "|".join(data[i]) + "\n"
+st.write(table)
+# 注意的是，这种方法只适用于较小的表格。如果你需要输出大量的数据或具有更复杂结构的表格，你可能需要考虑使用Pandas等数据处理工具，或者寻找第三方Streamlit小部件来输出更高级的表格。
+
+
+
+
+
+
 # Define the date ranges
 date_ranges = [(datetime(2021, 1, 1), datetime(2021, 7, 1)),
                (datetime(2021, 7, 1), datetime(2022, 1, 1)),

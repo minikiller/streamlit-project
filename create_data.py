@@ -72,7 +72,7 @@ class Stock():
             f"./data/Fund_{self.cur_date_str}.csv", parse_dates=['日期'], dtype={"股票代码": object})
         df.reset_index(inplace=True)
         start_day, end_day = self.get_start_end_day()
-        logger.info(start_day, end_day)
+        logger.info(f"{start_day}, {end_day}")
         df_selected = df.loc[(df['日期'] >= pd.to_datetime(start_day))
                              & (df['日期'] <= pd.to_datetime(end_day))]
         # df.drop(columns=['板块名称'], inplace=True)
@@ -102,7 +102,8 @@ class Sector():
     """
     管理股票板块
     """
-    stock_options = ["同花顺", '东方财富', ]
+    # stock_options = ['通达信']
+    stock_options = ["同花顺", '东方财富', '通达信']
     category_options = ['板块', "概念"]
 
     def __init__(self, begin_str):
@@ -505,5 +506,6 @@ class Sector():
 
 
 if __name__ == "__main__":
-    sector = Sector("")
+    sector = Sector("2023-03-31")
+    # sector = Sector("")
     sector.pipeline()

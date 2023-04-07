@@ -32,7 +32,7 @@ class StockStreamlitApp():
     RANGE = ["跌停", "跌<-5%",  "-3%<-5%",     "-3<-1%",
              "平盘", "<3%",     "3-5%",   "5%-涨停", "涨停"]
 
-    stock_options = ["同花顺", '东方财富', ]
+    stock_options = ["同花顺", '东方财富', '通达信']
     category_options = ['板块', "概念"]
     # file_date = ""
 
