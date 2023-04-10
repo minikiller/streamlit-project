@@ -1,5 +1,5 @@
 """
-自动生成按照板块的统计结果文件,以用于streamlit中调用
+用于 tools_page.py 根据日期自动生成目标的csv格式的文件
 """
 import os
 from datetime import date
@@ -131,7 +131,7 @@ class Sector():
     """
     管理股票板块
     """
-    stock_options = ["同花顺", '东方财富', ]
+    stock_options = ["同花顺", '东方财富', "通达信"]
     category_options = ['板块', "概念"]
 
     def __init__(self, begin_str, hist_file_name):

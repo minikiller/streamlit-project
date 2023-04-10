@@ -145,7 +145,7 @@ class StockStreamlitApp():
         options.configure_selection("single")
         self.logger.info("do it again")
         if "state" in st.session_state:
-            self.logger.info(f"get it {st.session_state.state}")
+            # self.logger.info(f"get it {st.session_state.state}")
             selection = AgGrid(
                 df,
                 enable_enterprise_modules=True,
@@ -160,7 +160,7 @@ class StockStreamlitApp():
                 # key='my_grid',
             )
         else:
-            self.logger.info("not get it")
+            # self.logger.info("not get it")
             selection = AgGrid(
                 df,
                 enable_enterprise_modules=True,
@@ -270,9 +270,9 @@ class StockStreamlitApp():
         st.title("使用plotly计算板块的热力图")
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            stock_value = st.sidebar.radio("请选择卷商:", self.stock_options)
+            stock_value = st.sidebar.radio("请选择卷商:", self.stock_options,key="stock")
         with col2:
-            category_value = st.sidebar.radio("请选择分类:", self.category_options)
+            category_value = st.sidebar.radio("请选择分类:", self.category_options,key="category")
 
         # 添加一些文本
         # st.write("使用plotly计算板块的热力图")

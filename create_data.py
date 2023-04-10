@@ -506,6 +506,6 @@ class Sector():
 
 
 if __name__ == "__main__":
-    sector = Sector("2023-03-31")
-    # sector = Sector("")
+    # sector = Sector("2023-03-31")
+    sector = Sector("")
     sector.pipeline()
