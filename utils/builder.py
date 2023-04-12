@@ -3,7 +3,6 @@ import pandas as pd
 # 定义 Streamlit 应用程序
 import plotly.express as px
 from datetime import datetime
-from st_aggrid.grid_options_builder import GridOptionsBuilder
 import plotly.graph_objs as go
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder, JsCode, ColumnsAutoSizeMode
 from streamlit_plotly_events import plotly_events
@@ -179,7 +178,8 @@ class StockStreamlitApp():
     # @st.cache_data
     def get_orginal_data(_self,) -> tuple[pd.DataFrame, list]:
         """
-        获得股票原始历史信息 
+        获得股票原始历史信息
+        文件名称是以本月的最后一个交易日期为准： 如:2023-04-30
         """
         df = pd.read_csv(
             f"./data/Hist_{_self.end_day}.csv", parse_dates=['日期'], index_col=0, dtype={"股票代码": object})
@@ -270,14 +270,16 @@ class StockStreamlitApp():
         st.title("使用plotly计算板块的热力图")
         col1, col2 = st.sidebar.columns(2)
         with col1:
-            stock_value = st.sidebar.radio("请选择卷商:", self.stock_options,key="stock")
+            stock_value = st.sidebar.radio(
+                "请选择卷商:", self.stock_options, key="stock")
         with col2:
-            category_value = st.sidebar.radio("请选择分类:", self.category_options,key="category")
+            category_value = st.sidebar.radio(
+                "请选择分类:", self.category_options, key="category")
 
         # 添加一些文本
         # st.write("使用plotly计算板块的热力图")
         code_value = st.sidebar.text_input("请输入股票名字：",)
-        if not "filter" in st.session_state:
+        if "filter" not in st.session_state:
             st.session_state.filter = ""
         code_df = self.get_code_df(stock_value, category_value)
         # filter_value = st.sidebar.text_input("请输入过滤的板块名字：", "包装印刷,中药")
