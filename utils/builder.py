@@ -277,10 +277,17 @@ class StockStreamlitApp():
         """ 
 
         """
+        tmp_df = df.copy()
+        tmp_df = tmp_df.drop(columns=["板块名称"])
+        tmp_df.reset_index(inplace=True)
+
+        # sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
+        #                         dtype={"股票代码": object})
         sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
                                 index_col=0, dtype={"股票代码": object})
         # df_list.append(sector_df)
-        merged_df = pd.merge(df, sector_df, on='股票代码')
+        merged_df = pd.merge(tmp_df, sector_df, on='股票代码')
+        merged_df.set_index("日期", inplace=True)
         return merged_df
 
     def main(self):
@@ -436,11 +443,14 @@ class StockStreamlitApp():
                 st.subheader(f"显示板块包括的股票:")
                 select = result["selected_rows"]
                 if len(select) > 0:
-                    # cur_df=self.merge_df(init_df,stock_value,category_value)
-                    # print(cur_df.info())
-                    category_df = init_df.copy()
+                    category_df = self.merge_df(
+                        init_df, stock_value, category_value)
+                    # print(category_df.info())
+                    # print(category_df.index)
+                    # category_df = init_df.copy()
                     code = select[0]['板块名称']
                     category_df = category_df[category_df['板块名称'] == code]
+                    # category_df.set_index("日期", inplace=True)
                     category_df = category_df.loc[cur_date]
                     category_df['股票名称'] = category_df['股票代码'].map(stock_dict)
                     category_df = category_df.loc[:, self.custom_df_columns]
