@@ -21,6 +21,10 @@ class StockStreamlitApp():
 
     # 市值的区间
     options = ["0-100", "100-500", "500-1000", "1000-30000", "all", ]
+    custom_columns = ['日期', '板块名称', '涨的数量',
+                      '跌的数量', '平的数量', '总市值亿元', '跌停', '涨停']
+    custom_df_columns = ['板块名称', '股票名称', '股票代码', '开盘',
+                         '收盘', '最高', '最低', '成交量', '涨跌幅']
     # option_dict = {
     #     "全部": (float('-inf'), float('inf')),
     #     "0-100": (0, 100),
@@ -135,10 +139,18 @@ class StockStreamlitApp():
         Returns:
             dict: The selected row
         """
+        df = df.loc[:, self.custom_columns]
         options = GridOptionsBuilder.from_dataframe(
             df, enableRowGroup=True, enableValue=True, enablePivot=True)
+        # 仅显示Name，Age和Salary列
+        # for name in self.custom_columns:
+        #     options.configure_column(
+        #         name, editable=False, enableRowGroup=True, enablePivot=True)
+
         # editable = True was removed - need this to be non- editable
         # options.auto_size_columns()
+
+        # options.set_columnDefs(columnDefs)
         options.configure_side_bar()
         # options.fit_columns_on_grid_load(True)
         options.configure_selection("single")
@@ -156,6 +168,7 @@ class StockStreamlitApp():
                 height=400,
                 columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
                 column_state=st.session_state.state,
+                columns=self.custom_columns
                 # key='my_grid',
             )
         else:
@@ -171,6 +184,8 @@ class StockStreamlitApp():
                 height=400,
                 # key='my_grid',
                 columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
+                columns=self.custom_columns
+
             )
 
         return selection
@@ -251,6 +266,23 @@ class StockStreamlitApp():
         else:
             st.warning("no data")
 
+    @st.cache_data
+    def get_stock_dict(_self):
+        code_df = pd.read_csv(
+            "./data/板块名称_股票对应.csv", index_col=0, dtype={"股票代码": object})
+        code_dict = code_df.set_index("股票代码")['股票名称'].to_dict()
+        return code_dict
+
+    def merge_df(self, df, stock, category):
+        """ 
+
+        """
+        sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
+                                index_col=0, dtype={"股票代码": object})
+        # df_list.append(sector_df)
+        merged_df = pd.merge(df, sector_df, on='股票代码')
+        return merged_df
+
     def main(self):
 
         st.set_page_config(
@@ -266,6 +298,7 @@ class StockStreamlitApp():
         start_value = "10"
         end_value = "100"
         self.logger.info("begin to run")
+        stock_dict = self.get_stock_dict()
 
         st.title("使用plotly计算板块的热力图")
         col1, col2 = st.sidebar.columns(2)
@@ -367,35 +400,55 @@ class StockStreamlitApp():
             cur_df = cur_df.drop(columns="总市值")
             zero_df = cur_df[cur_df['涨幅比'] == 0]
             cur_df = cur_df[cur_df['涨幅比'] != 0]
+            st.markdown("<hr>", unsafe_allow_html=True)
 
-            st.subheader(f"显示冰点的数据:")
-            st.dataframe(zero_df)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.subheader(f"显示冰点的数据:")
+                zero_df = zero_df.loc[:, self.custom_columns]
+                st.dataframe(zero_df)
 
             # st.title("Netlix shows analysis")
             # add this
             # 使用beta_columns创建两个列
+
+            with col2:
+                st.markdown(
+                    f'<span style="font-size: 24px">{cur_date} <span style="color: blue"><< {stock_value} | {category_value}名称 >></span>显示的数据:</span>', unsafe_allow_html=True)
+                gb = GridOptionsBuilder.from_dataframe(cur_df)
+                gb.configure_pagination(paginationPageSize=25,
+                                        paginationAutoPageSize=True)
+                gb.configure_side_bar()
+
+                gb.configure_default_column(
+                    groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
+
+                gridOptions = gb.build()
+                result = self.aggrid_interactive_table(cur_df)
+
+                column_state = result.get("column_state")
+                if column_state and len(column_state) > 0:
+                    # print(grid_result)
+                    st.session_state.state = column_state
+                #     print(column_state)
+                #
+            with col3:
+                st.subheader(f"显示板块包括的股票:")
+                select = result["selected_rows"]
+                if len(select) > 0:
+                    # cur_df=self.merge_df(init_df,stock_value,category_value)
+                    # print(cur_df.info())
+                    category_df = init_df.copy()
+                    code = select[0]['板块名称']
+                    category_df = category_df[category_df['板块名称'] == code]
+                    category_df = category_df.loc[cur_date]
+                    category_df['股票名称'] = category_df['股票代码'].map(stock_dict)
+                    category_df = category_df.loc[:, self.custom_df_columns]
+
+                    st.dataframe(category_df)
+
             st.markdown("<hr>", unsafe_allow_html=True)
-            st.markdown(
-                f'<span style="font-size: 24px">{cur_date} <span style="color: blue"><< {stock_value} | {category_value}名称 >></span>显示的数据:</span>', unsafe_allow_html=True)
-            gb = GridOptionsBuilder.from_dataframe(cur_df)
-            gb.configure_pagination(paginationPageSize=25,
-                                    paginationAutoPageSize=True)
-            gb.configure_side_bar()
-
-            gb.configure_default_column(
-                groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
-
-            gridOptions = gb.build()
-            result = self.aggrid_interactive_table(cur_df)
-
-            column_state = result.get("column_state")
-            if column_state and len(column_state) > 0:
-                # print(grid_result)
-                st.session_state.state = column_state
-            #     print(column_state)
-            #
-            st.markdown("<hr>", unsafe_allow_html=True)
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 code = "国有大型银行"
                 select = result["selected_rows"]
@@ -488,37 +541,38 @@ class StockStreamlitApp():
                         xaxis_title='区间', yaxis_title='数量')
                     # st.plotly_chart(fig)
                     st.plotly_chart(fig, use_container_width=True)
-            cur_df = df.loc[cur_date]
-            hot_df, ice_df = self.get_hot_ice_df(cur_df)
-            trace1 = go.Bar(
-                y=hot_df.head(10)["板块名称"],
-                x=hot_df.head(10)["距上次沸点天数"],
-                name='沸点天数',
-                orientation='h',
-                marker=dict(
-                    color='red'  # 设置Trace 2的颜色为红色
+            with col3:
+                cur_df = df.loc[cur_date]
+                hot_df, ice_df = self.get_hot_ice_df(cur_df)
+                trace1 = go.Bar(
+                    y=hot_df.head(10)["板块名称"],
+                    x=hot_df.head(10)["距上次沸点天数"],
+                    name='沸点天数',
+                    orientation='h',
+                    marker=dict(
+                        color='red'  # 设置Trace 2的颜色为红色
+                    )
                 )
-            )
 
-            trace2 = go.Bar(
-                y=ice_df.head(10)["板块名称"],
-                x=ice_df.head(10)["距上次冰点天数"],
-                name='冰点天数',
-                orientation='h',
-                marker=dict(
-                    color='green'  # 设置Trace 2的颜色为红色
+                trace2 = go.Bar(
+                    y=ice_df.head(10)["板块名称"],
+                    x=ice_df.head(10)["距上次冰点天数"],
+                    name='冰点天数',
+                    orientation='h',
+                    marker=dict(
+                        color='green'  # 设置Trace 2的颜色为红色
+                    )
                 )
-            )
 
-            data = [trace2, trace1]
-            layout = go.Layout(
-                # barmode='stack',
-                barmode='relative',
-                title='冰点和热点水平双条形图'
-            )
+                data = [trace2, trace1]
+                layout = go.Layout(
+                    # barmode='stack',
+                    barmode='relative',
+                    title='冰点和热点水平双条形图'
+                )
 
-            fig = go.Figure(data=data, layout=layout)
-            st.plotly_chart(fig, use_container_width=True)
+                fig = go.Figure(data=data, layout=layout)
+                st.plotly_chart(fig, use_container_width=True)
 
         else:
             st.write(f"您选择的数据不存在{cur_date}")
