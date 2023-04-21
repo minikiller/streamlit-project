@@ -279,6 +279,7 @@ class StockStreamlitApp():
         """
         tmp_df = df.copy()
         tmp_df = tmp_df.drop(columns=["板块名称"])
+        # 需要重置index，否则merge后会消失
         tmp_df.reset_index(inplace=True)
 
         # sector_df = pd.read_csv(f"./data/constant/{stock}_{category}名称_股票对应.csv",
@@ -381,7 +382,7 @@ class StockStreamlitApp():
             #                 & (cur_df['总市值'] <= (end_value)*100_000_000)]
             # 创建bar
 
-            st.subheader(f"{cur_date}全部板块统计柱形图：")
+            st.subheader(f"{cur_date}全部股票柱形图：")
             bar_df = self.create_bar(init_df.loc[cur_date])
 
             # fig = go.Figure([go.Bar(x=data['x'], y=data['y'])])
