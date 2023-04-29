@@ -37,6 +37,7 @@ class KdataStreamlitApp():
                             vertical_spacing=0.09,
                             subplot_titles=('k线图', '成交量', '涨跌幅'),
                             row_width=[0.3, 0.3, 0.4])
+        # 获得数据集
         line_df = self.get_line_df()
 
         candlestick = go.Candlestick(
