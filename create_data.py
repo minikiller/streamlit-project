@@ -212,7 +212,7 @@ class Sector():
         """
         # db = df.loc['2023-03-01']
         cur_df = _df.copy()
-        bins = [-20, -9.97, -5, -3, -0.099, 0.099, 3, 5, 9.97, 20]
+        bins = [-21, -9.95, -5, -3, -0.099, 0.099, 3, 5, 9.949, 21]
         # bins = list(range(-11, 12))
         cuts = pd.cut(cur_df['涨跌幅'], bins=bins)
         pct_chg_list = cur_df.groupby(["日期", "板块名称", cuts])['涨跌幅'].count()

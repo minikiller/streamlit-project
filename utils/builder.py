@@ -139,7 +139,6 @@ class StockStreamlitApp():
         Returns:
             dict: The selected row
         """
-        df = df.loc[:, self.custom_columns]
         options = GridOptionsBuilder.from_dataframe(
             df, enableRowGroup=True, enableValue=True, enablePivot=True)
         # 仅显示Name，Age和Salary列
@@ -217,7 +216,7 @@ class StockStreamlitApp():
 
         # bins = list(range(-11, 12))
         # bins = [-20, -10, -5, -3, -0.099, 0.099, 3, 5, 10, 20]
-        bins = [-20, -9.97, -5, -3, -0.099, 0.099, 3, 5, 9.97, 20]
+        bins = [-21, -9.95, -5, -3, -0.099, 0.099, 3, 5, 9.949, 21]
         cuts = pd.cut(df['涨跌幅'], bins=bins)
         pct_chg_list = df.groupby(cuts)['涨跌幅'].count().tolist()
 
@@ -278,7 +277,8 @@ class StockStreamlitApp():
 
         """
         tmp_df = df.copy()
-        tmp_df = tmp_df.drop(columns=["板块名称"])
+        if "板块名称" in tmp_df.columns:
+            tmp_df = tmp_df.drop(columns=["板块名称"])
         # 需要重置index，否则merge后会消失
         tmp_df.reset_index(inplace=True)
 
@@ -432,7 +432,8 @@ class StockStreamlitApp():
                     groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
                 gridOptions = gb.build()
-                result = self.aggrid_interactive_table(cur_df)
+                cur_temp_df = cur_df.loc[:, self.custom_columns]
+                result = self.aggrid_interactive_table(cur_temp_df)
 
                 column_state = result.get("column_state")
                 if column_state and len(column_state) > 0:
@@ -456,7 +457,8 @@ class StockStreamlitApp():
                     category_df['股票名称'] = category_df['股票代码'].map(stock_dict)
                     category_df = category_df.loc[:, self.custom_df_columns]
 
-                    st.dataframe(category_df)
+                    # st.dataframe(category_df)
+                    filter_result = self.aggrid_interactive_table(category_df)
 
             st.markdown("<hr>", unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
