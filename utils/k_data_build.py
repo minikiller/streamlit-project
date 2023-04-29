@@ -7,12 +7,6 @@ import time
 from datetime import datetime
 import pandas as pd
 
-"""_summary_
-
-Returns:
-    _type_: _description_
-"""
-
 class KdataStreamlitApp():
     def __init__(self, year) -> None:
         self.year = year
@@ -28,13 +22,14 @@ class KdataStreamlitApp():
         st.set_page_config(
             page_title=f"{self.year}-k线数据分析", layout="wide")
         df = pd.read_csv(f"./data/k_data_{self.year}01-{self.year}12.csv",
-                         parse_dates=True)
+                         parse_dates=['date'])
+        # print(df.info())
         st.dataframe(df)
         # 生成新列，以便后面设置颜色
         df['diag'] = np.empty(len(df))
         # 设置涨/跌成交量柱状图的颜色
-        df.diag[df.close > df.open] = 'red'
-        df.diag[df.close <= df.open] = 'green'
+        df.loc[df.close > df.open, 'diag'] = 'red'
+        df.loc[df.close <= df.open, 'diag'] = 'green'
 
         fig = make_subplots(rows=3,
                             cols=1,
@@ -43,17 +38,6 @@ class KdataStreamlitApp():
                             subplot_titles=('k线图', '成交量', '涨跌幅'),
                             row_width=[0.3, 0.3, 0.4])
         line_df = self.get_line_df()
-        # candlestick
-        # candlestick = go.Candlestick(
-        #     x=df.date,
-        #     open=df['Open'],
-        #     high=df['High'],
-        #     low=df['Low'],
-        #     close=df['Close'],
-        #     showlegend=False,
-        #     increasing_line_color='red',
-        #     decreasing_line_color='green'
-        # )
 
         candlestick = go.Candlestick(
             x=df['date'],
@@ -62,24 +46,18 @@ class KdataStreamlitApp():
             low=df['low'],
             close=df['close'],
             increasing_line_color='red',
-            decreasing_line_color='green', name="k线图"
+            decreasing_line_color='green', name="k线图",
+            text=[f'日期: {date:%Y-%m-%d}<br>开盘: {open_:.2f}<br>最高: {high:.2f}<br>最低: {low:.2f}<br>收盘: {close_:.2f}'
+                                           for date, open_, high, low, close_ in zip(df['date'], df['open'], df['high'], df['low'], df['close'])],
+            hoverinfo='text'
         )
 
-        # set the hovertemplate
-        # fig.update_traces(hovertemplate='Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<br>date: %{x|%Y-%m-%d}')
-
-        # candlestick_fig = go.Figure(candlestick)
-
-        # # candlestick.update_layout(xaxis_rangeslider_visible=False)
-        # candlestick_fig.update_layout(xaxis=dict(
-        #     tickformat='%Y-%m-%d'
-        # ))
         sma = df['close'].rolling(13).mean()
         df['SMA'] = sma
         sma = go.Scatter(x=df.date,
                          y=df["SMA"],
                          yaxis="y1",
-                         name="13MA"
+                         name="13MA",hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
                          )
 
         ema = df['close'].rolling(55).mean()
@@ -87,8 +65,8 @@ class KdataStreamlitApp():
 
         ema = go.Scatter(x=df.date,
                          y=df["EMA"],
-                         #  yaxis="y1",
-                         name="55MA"
+                         yaxis="y1",
+                         name="55MA",hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
                          )
 
         fig.add_trace(
@@ -96,25 +74,20 @@ class KdataStreamlitApp():
             row=1,
             col=1
         )
-        # fig.add_trace(candlestick, row=1, col=1)
         fig.add_trace(sma, row=1, col=1)
         fig.add_trace(ema, row=1, col=1)
 
         # volume
+        df['volume_b'] = df.volume/1e9
         fig.add_trace(
             go.Bar(x=df.date,
-                   y=df.volume,
-                   marker_color=df.diag, yaxis='y2', name="成交量"),
+                   y=df.volume_b,
+                   marker_color=df.diag, yaxis='y2', name="成交量", hovertemplate='日期: %{x|%Y-%m-%d}<br>成交量: %{y:.2f}B'),
             #    showlegend=False,marker_color=df.diag, opacity=0.5, yaxis='y2'),
             row=2,
             col=1
         )
-        #
-        # fig.update(data=[candlestick, sma],row=1,
-        #     col=1)
-        # candlestick.update_layout(xaxis=dict(
-        #     tickformat='%Y-%m-%d'
-        # ))
+ 
         # 在row=2, col=1处添加红线
         fig.add_shape(type='line',
                       x0=min(line_df['日期']), y0=4, x1=max(line_df['日期']), y1=4,
@@ -123,21 +96,15 @@ class KdataStreamlitApp():
 
         # 绘制折线图
         fig.add_trace(
-            go.Bar(x=line_df['日期'], y=line_df['涨幅'], name='涨幅总数', marker=dict(color='blue')), row=3, col=1)
+            go.Bar(x=line_df['日期'], y=line_df['涨幅'], name='涨幅总数', yaxis="y3", marker=dict(color='blue'),hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
         fig.add_trace(
-            go.Bar(x=line_df['日期'], y=line_df['跌幅'], name='跌幅总数', marker=dict(color='orange')), row=3, col=1)
+            go.Bar(x=line_df['日期'], y=line_df['跌幅'], name='跌幅总数', yaxis="y3", marker=dict(color='orange'),hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
         fig.update_yaxes(range=[0, 30], row=3, col=1)
 
-        # fig.update(layout_xaxis_rangeslider_visible=False)
-        # fig.update_layout(xaxis=dict(
-        #     tickformat='%Y-%m-%d',  # Set the date format here
-        #     tickangle=45,
-        #     type='date'
-        # ))
         fig.update_xaxes(tickformat='%Y-%m-%d',  type='date', row=3, col=1)
-        fig.update_xaxes(tickformat='%Y-%m-%d',  type='date', row=2, col=1)
-        # fig.update_xaxes(tickformat='%Y-%m-%d', tickangle=45, type='date', row=2, col=1)
-        fig.update_xaxes(tickformat='%Y-%m-%d', type='date', row=1, col=1)
+        # fig.update_xaxes(tickformat='%Y-%m-%d',  type='date', row=2, col=1)
+        # # fig.update_xaxes(tickformat='%Y-%m-%d', tickangle=45, type='date', row=2, col=1)
+        # fig.update_xaxes(tickformat='%Y-%m-%d', type='date', row=1, col=1)
         fig.update_xaxes(
             rangebreaks=[
                 dict(bounds=["sat", "mon"]),  # 去除周六和周日的间隔
@@ -153,6 +120,11 @@ class KdataStreamlitApp():
                 dict(bounds=["sat", "mon"]),  # 去除周六和周日的间隔
             ], row=1, col=1
         )
+        # fig.update_layout(xaxis_rangeslider_visible=False, xaxis_title="Date",
+        #                 xaxis=dict(
+        #                     type='date',
+        #                     tickformat='%Y-%m-%d'
+        #                 ))
         # fig.update_xaxes(title_text='日期')
         # fig.update_yaxes(title_text='沪深300价格')
         fig.update_layout(title=f"{self.year}上证指数", height=900)
