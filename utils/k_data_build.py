@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import pandas as pd
 
+
 class KdataStreamlitApp():
     def __init__(self, year) -> None:
         self.year = year
@@ -49,7 +50,7 @@ class KdataStreamlitApp():
             increasing_line_color='red',
             decreasing_line_color='green', name="k线图",
             text=[f'日期: {date:%Y-%m-%d}<br>开盘: {open_:.2f}<br>最高: {high:.2f}<br>最低: {low:.2f}<br>收盘: {close_:.2f}'
-                                           for date, open_, high, low, close_ in zip(df['date'], df['open'], df['high'], df['low'], df['close'])],
+                  for date, open_, high, low, close_ in zip(df['date'], df['open'], df['high'], df['low'], df['close'])],
             hoverinfo='text'
         )
 
@@ -58,7 +59,7 @@ class KdataStreamlitApp():
         sma = go.Scatter(x=df.date,
                          y=df["SMA"],
                          yaxis="y1",
-                         name="13MA",hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
+                         name="13MA", hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
                          )
 
         ema = df['close'].rolling(55).mean()
@@ -67,7 +68,7 @@ class KdataStreamlitApp():
         ema = go.Scatter(x=df.date,
                          y=df["EMA"],
                          yaxis="y1",
-                         name="55MA",hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
+                         name="55MA", hovertemplate='日期: %{x|%Y-%m-%d}<br>价格: %{y:.2f}'
                          )
 
         fig.add_trace(
@@ -88,7 +89,7 @@ class KdataStreamlitApp():
             row=2,
             col=1
         )
- 
+
         # 在row=2, col=1处添加红线
         fig.add_shape(type='line',
                       x0=min(line_df['日期']), y0=4, x1=max(line_df['日期']), y1=4,
@@ -96,10 +97,11 @@ class KdataStreamlitApp():
                       row=3, col=1)
 
         # 绘制折线图
+        line_df.loc[line_df['跌幅'] > 4,'跌幅'] = 0
+        # fig.add_trace(
+        #     go.Bar(x=line_df['日期'], y=line_df['涨幅'], name='涨幅总数', yaxis="y3", marker=dict(color='blue'), hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
         fig.add_trace(
-            go.Bar(x=line_df['日期'], y=line_df['涨幅'], name='涨幅总数', yaxis="y3", marker=dict(color='blue'),hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
-        fig.add_trace(
-            go.Bar(x=line_df['日期'], y=line_df['跌幅'], name='跌幅总数', yaxis="y3", marker=dict(color='orange'),hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
+            go.Bar(x=line_df['日期'], y=line_df['跌幅'], name='跌幅总数', yaxis="y3", marker=dict(color='orange'), hovertemplate='日期: %{x|%Y-%m-%d}<br>总数: %{y:,}'), row=3, col=1)
         fig.update_yaxes(range=[0, 30], row=3, col=1)
 
         fig.update_xaxes(tickformat='%Y-%m-%d',  type='date', row=3, col=1)
@@ -108,19 +110,25 @@ class KdataStreamlitApp():
         # fig.update_xaxes(tickformat='%Y-%m-%d', type='date', row=1, col=1)
         fig.update_xaxes(
             rangebreaks=[
-                dict(bounds=["sat", "mon"]),  # 去除周六和周日的间隔
+                dict(bounds=["sat", "mon"]),
+                dict(bounds=["2023-01-21", "2023-01-29"]),
+                dict(bounds=["2023-04-05", "2023-04-05"])  # 去除周六和周日的间隔
             ], row=3, col=1
         )
-        fig.update_xaxes(
-            rangebreaks=[
-                dict(bounds=["sat", "mon"]),  # 去除周六和周日的间隔
-            ], row=2, col=1
-        )
-        fig.update_xaxes(
-            rangebreaks=[
-                dict(bounds=["sat", "mon"]),  # 去除周六和周日的间隔
-            ], row=1, col=1
-        )
+        # fig.update_xaxes(
+        #     rangebreaks=[
+        #         dict(bounds=["sat", "mon"]),
+        #         dict(bounds=["2023-01-21", "2023-01-29"]),
+        #         dict(bounds=["2023-04-05", "2023-04-05"])  # 去除周六和周日的间隔
+        #     ], row=2, col=1
+        # )
+        # fig.update_xaxes(
+        #     rangebreaks=[
+        #         dict(bounds=["sat", "mon"]),
+        #         dict(bounds=["2023-01-21", "2023-01-29"]),
+        #         dict(bounds=["2023-04-05", "2023-04-05"])  # 去除周六和周日的间隔
+        #     ], row=1, col=1
+        # )
         # fig.update_layout(xaxis_rangeslider_visible=False, xaxis_title="Date",
         #                 xaxis=dict(
         #                     type='date',
